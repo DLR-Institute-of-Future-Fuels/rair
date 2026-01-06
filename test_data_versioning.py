@@ -59,7 +59,7 @@ def get_tracking_branch_url():
         return "no-upstream"
 
 
-def get_result_directory_name(result_path: str = 'results') -> str:
+def get_result_prefix(result_path: str = 'results') -> str:
     """Return result directory name based on git state and current time."""
     git_hash = get_git_hash()
     git_short_hash = get_git_short_hash()
@@ -95,4 +95,6 @@ def get_result_directory_name(result_path: str = 'results') -> str:
         else:
             f.write(f"- No uncommitted changes\n")
 
-    return path
+    if git_diff_hash:
+        return f"{path}/{git_short_hash}-{git_diff_hash}_"
+    return f"{path}/{git_short_hash}_"

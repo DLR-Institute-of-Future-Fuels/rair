@@ -46,10 +46,11 @@ p2 = 9.8
 
 # Create a new result directory in the format
 # my_results/YYYYMMDD-HHMMSS_<git-hash>[_<diff-hash>]/
-path = test_data_versioning.get_result_directory_name("my_results")
+# and get a prefix for saving result files
+file_prefix = test_data_versioning.get_result_prefix("my_results")
 
 # Save the modeling results to the created directory
-with open(f"{path}/data.txt", "w") as f:
+with open(f"{file_prefix}data.txt", "w") as f:
     f.write(f"Result: {p1 * p2}\n")
 
 ```
