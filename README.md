@@ -70,3 +70,10 @@ my_results/
         git_diff.patch
         info.md
 ```
+
+To restore the version 44ec730-1a2b3c_data.txt was created with,
+the following commands can be used:
+``` bash
+git checkout 44ec730
+git apply my_results/20260106-154510_44ec730-1a2b3c/git_diff.patch
+```
