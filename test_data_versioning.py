@@ -66,6 +66,12 @@ def get_result_directory_name(result_path: str = 'results') -> str:
     git_diff = get_git_diff()
     git_diff_hash = stable_hash(git_diff, 4) if git_diff else ""
     path = result_path + "/" + get_directory_name(git_short_hash, git_diff_hash) + "/"
+    tracking_branch_url = get_tracking_branch_url()
+
+    if tracking_branch_url.startswith('https://gitlab.dlr.de/'):
+        gitlab_link = tracking_branch_url.replace('.git', '/-/tree/' + git_hash)
+    else:
+        gitlab_link = None
 
     # Create the directory if it does not exist
     os.makedirs(path, exist_ok=True)
@@ -76,10 +82,13 @@ def get_result_directory_name(result_path: str = 'results') -> str:
     with open(path + "info.md", "w") as f:
         f.write(f"# Data information\n\n")
         f.write(f"- Run time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"- Git hash: `{git_hash}`\n")
+        if gitlab_link:
+            f.write(f"- Git hash: [{git_hash}]({gitlab_link})\n")
+        else:
+            f.write(f"- Git hash: `{git_hash}`\n")
         f.write(f"- Git hash short: `{git_short_hash}`\n")
         f.write(f"- Branch name: `{get_branch_name()}`\n")
-        f.write(f"- Tracking branch URL: `{get_tracking_branch_url()}`\n")
+        f.write(f"- Tracking branch URL: `{tracking_branch_url}`\n")
         if git_diff_hash:
             f.write(f"- Uncommitted changes:\n\n")
             f.write(f"```diff\n{git_diff}\n```\n")	
