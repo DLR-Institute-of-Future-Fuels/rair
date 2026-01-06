@@ -54,3 +54,19 @@ with open(f"{file_prefix}data.txt", "w") as f:
     f.write(f"Result: {p1 * p2}\n")
 
 ```
+
+The structure of the created result directory can look like this:
+```
+my_results/
+    20260106-154510_44ec730-1a2b3c/
+        data.txt
+        git_diff.patch
+        info.md
+    20260107-101530_44ec730/
+        data.txt
+        info.md
+    20260107-101635_44ec730-4d5e6f/
+        data.txt
+        git_diff.patch
+        info.md
+```
