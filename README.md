@@ -45,8 +45,8 @@ p1 = 5.0
 p2 = 9.8
 
 # Create a new result directory in the format
-# results/YYYYMMDD-HHMMSS_<git-hash>[_<diff-hash>]/
-path = test_data_versioning.get_result_directory_name("results")
+# my_results/YYYYMMDD-HHMMSS_<git-hash>[_<diff-hash>]/
+path = test_data_versioning.get_result_directory_name("my_results")
 
 # Save the modeling results to the created directory
 with open(f"{path}/data.txt", "w") as f:
