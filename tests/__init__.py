@@ -1,0 +1,1 @@
+"""Test suite configuration and fixtures for rair."""
