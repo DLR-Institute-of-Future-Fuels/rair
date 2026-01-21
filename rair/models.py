@@ -35,6 +35,7 @@ class RunConfig:
     output_globs: list[str] = field(default_factory=list)
     exclude_globs: list[str] = field(default_factory=list)
     archive_dir: Path = Path("rairarchive")
+    capture_output: bool = True
 
     def __post_init__(self) -> None:
         warnings.warn(

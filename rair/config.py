@@ -19,6 +19,7 @@ class RairConfig:
     input_glob: list[str] = field(default_factory=list)
     output_glob: list[str] = field(default_factory=list)
     exclude_glob: list[str] = field(default_factory=list)
+    capture_output: bool = True
 
 
 def find_config_file(project_dir: Path, config_name: Optional[str] = None) -> Optional[Path]:
@@ -91,6 +92,9 @@ def parse_rair_config(config_data: dict) -> RairConfig:
             val = rair_config["exclude_glob"]
             config.exclude_glob = val if isinstance(val, list) else [val]
 
+        if "capture_output" in rair_config:
+            config.capture_output = bool(rair_config["capture_output"])
+
     elif "rair" in config_data:
         rair_config = config_data["rair"]
 
@@ -108,6 +112,9 @@ def parse_rair_config(config_data: dict) -> RairConfig:
         if "exclude_glob" in rair_config:
             val = rair_config["exclude_glob"]
             config.exclude_glob = val if isinstance(val, list) else [val]
+
+        if "capture_output" in rair_config:
+            config.capture_output = bool(rair_config["capture_output"])
 
     return config
 

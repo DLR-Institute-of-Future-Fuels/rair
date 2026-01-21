@@ -71,31 +71,40 @@ class TestCopyToDataArchive:
 
 
 class TestGenerateRunId:
-    def test_with_diff(self):
-        git_info = GitInfo(
-            commit_hash="abc123",
-            short_hash="abc",
-            branch="main",
-            diff="some diff",
-            diff_hash="def456",
-            tracking_url="https://github.com",
-        )
-        run_id = generate_run_id(git_info)
-        assert "abc" in run_id
-        assert "def456" in run_id
+    def test_increments(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_dir = Path(tmpdir) / "archive"
+            archive_dir.mkdir()
 
-    def test_without_diff(self):
-        git_info = GitInfo(
-            commit_hash="abc123",
-            short_hash="abc",
-            branch="main",
-            diff="",
-            diff_hash="",
-            tracking_url="https://github.com",
-        )
-        run_id = generate_run_id(git_info)
-        assert "abc" in run_id
-        assert "def456" not in run_id
+            run_id1 = generate_run_id(archive_dir)
+            run_id2 = generate_run_id(archive_dir)
+            run_id3 = generate_run_id(archive_dir)
+
+            assert run_id1.endswith("-001")
+            assert run_id2.endswith("-002")
+            assert run_id3.endswith("-003")
+
+    def test_date_format(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_dir = Path(tmpdir) / "archive"
+            archive_dir.mkdir()
+
+            run_id = generate_run_id(archive_dir)
+            import datetime
+            today = datetime.datetime.now().strftime("%Y%m%d")
+            assert run_id.startswith(today)
+            assert "-" in run_id
+
+    def test_new_day_resets(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_dir = Path(tmpdir) / "archive"
+            archive_dir.mkdir()
+
+            run_id1 = generate_run_id(archive_dir)
+            assert run_id1.endswith("-001")
+
+            run_id2 = generate_run_id(archive_dir)
+            assert run_id2.endswith("-002")
 
 
 class TestCreateRunDirectory:
@@ -125,6 +134,9 @@ class TestWriteRunInfo:
     def test_write_info(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             run_dir = Path(tmpdir)
+            project_dir = Path(tmpdir)
+            archive_dir = project_dir / "archive"
+            archive_dir.mkdir()
             git_info = GitInfo(
                 commit_hash="abc123",
                 short_hash="abc",
@@ -147,6 +159,8 @@ class TestWriteRunInfo:
             write_run_info(
                 run_dir,
                 Path("script.py"),
+                project_dir,
+                archive_dir,
                 git_info,
                 input_files,
                 output_files,

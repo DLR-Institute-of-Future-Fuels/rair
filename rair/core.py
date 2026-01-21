@@ -60,28 +60,53 @@ def run(
         git_status = get_status(cwd=base_dir)
         git_info = create_git_info(git_status)
 
-        result = subprocess.run(
-            [sys.executable, str(script)] + args,
-            cwd=str(base_dir),
-        )
+        script_output: str | None = None
+        return_code: int
+
+        if config.capture_output:
+            process = subprocess.Popen(
+                [sys.executable, str(script)] + args,
+                cwd=str(base_dir),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                bufsize=1,
+            )
+            output_lines: list[str] = []
+            assert process.stdout is not None
+            for line in process.stdout:
+                print(line, end="")
+                output_lines.append(line)
+            process.wait()
+            script_output = "".join(output_lines)
+            return_code = process.returncode
+        else:
+            result = subprocess.run(
+                [sys.executable, str(script)] + args,
+                cwd=str(base_dir),
+            )
+            return_code = result.returncode
 
         output_files = collect_files(base_dir, config.output_globs, config.exclude_globs)
         after_snapshot = create_snapshot(output_files, cache)
 
         save_cache(cache_dir, cache)
 
-        run_id = generate_run_id(git_info)
         archive_path = base_dir / config.archive_dir
+        run_id = generate_run_id(archive_path)
         run_info = create_run_info(
             run_id=run_id,
             script=script,
+            project_dir=base_dir,
             archive_dir=archive_path,
             git_info=git_info,
             input_snapshot=before_snapshot,
             output_snapshot=after_snapshot,
+            script_output=script_output,
         )
 
-        return result.returncode
+        return return_code
     finally:
         os.chdir(original_cwd)
 

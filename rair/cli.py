@@ -58,6 +58,10 @@ def main(
         dir_okay=True,
         resolve_path=True,
     ),
+    capture_output: bool = Option(
+        default=True,
+        help="Capture and save script output to out.txt",
+    ),
 ) -> None:
     """Run a Python script with data versioning."""
     project_dir = script.resolve().parent
@@ -77,6 +81,7 @@ def main(
         output_globs=merged_config.output_glob,
         exclude_globs=merged_config.exclude_glob,
         archive_dir=merged_config.archive_dir,
+        capture_output=capture_output,
     )
 
     script_args = args if args is not None else []
