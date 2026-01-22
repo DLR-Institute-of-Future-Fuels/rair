@@ -91,7 +91,7 @@ class TestGetDiffHash:
 
     def test_with_content(self):
         result = get_diff_hash("some diff content")
-        assert len(result) == 8
+        assert len(result) == 20
         assert result.isalnum()
 
 

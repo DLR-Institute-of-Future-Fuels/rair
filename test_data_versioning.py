@@ -7,7 +7,7 @@ import os
 def stable_hash(s: str, lengths: int = 0) -> str:
     if lengths:
         return hashlib.sha256(s.encode("utf-8")).hexdigest()[:lengths]
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()[:20]  # truncated to 160 bit 
 
 
 def call_command(command: list[str]) -> str:

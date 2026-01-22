@@ -25,7 +25,7 @@ class TestComputeFileHash:
 
         try:
             hash1 = compute_file_hash(path)
-            assert len(hash1) == 64
+            assert len(hash1) == 20
             assert hash1.isalnum()
 
             hash2 = compute_file_hash(path)

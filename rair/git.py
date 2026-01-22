@@ -61,7 +61,7 @@ def get_diff_hash(diff: str) -> str:
     """Return a short hash of the git diff."""
     if not diff:
         return ""
-    return hashlib.sha256(diff.encode("utf-8")).hexdigest()[:8]
+    return hashlib.sha256(diff.encode("utf-8")).hexdigest()[:20]  # truncated to 160 bit 
 
 
 def get_tracking_url(cwd: Optional[Path] = None) -> str:

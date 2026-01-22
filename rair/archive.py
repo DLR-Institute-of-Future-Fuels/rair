@@ -4,19 +4,9 @@ import json
 import shutil
 import time
 from pathlib import Path
+from .hashing import compute_file_hash
 
 from .models import FileSnapshot, GitInfo, RunConfig, RunInfo, TrackedFile
-
-
-def compute_file_hash(path: Path) -> str:
-    """Compute SHA256 hash of a file."""
-    import hashlib
-    sha256_hash = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            sha256_hash.update(chunk)
-    return sha256_hash.hexdigest()
-
 
 def get_unique_data_path(data_dir: Path, file_hash: str, original_name: str) -> Path:
     """Get the path for a unique data file, deduplicated by hash."""
