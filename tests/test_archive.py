@@ -2,8 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
-import pytest
 
 from rair.archive import (
     compute_file_hash,
@@ -13,10 +11,9 @@ from rair.archive import (
     create_run_directory,
     get_gitlab_link,
     write_run_info,
-    archive_files,
     compress_diff,
 )
-from rair.models import FileSnapshot, GitInfo, TrackedFile
+from rair.models import GitInfo, TrackedFile
 
 
 class TestComputeFileHash:
@@ -77,35 +74,38 @@ class TestGenerateRunId:
             archive_dir = Path(tmpdir) / "archive"
             archive_dir.mkdir()
 
-            run_id1 = generate_run_id(archive_dir)
-            run_id2 = generate_run_id(archive_dir)
-            run_id3 = generate_run_id(archive_dir)
+            run_id1 = generate_run_id(archive_dir, "abc123de")
+            run_id2 = generate_run_id(archive_dir, "def456gh")
+            run_id3 = generate_run_id(archive_dir, "ghi789ij")
 
-            assert run_id1.endswith("-001")
-            assert run_id2.endswith("-002")
-            assert run_id3.endswith("-003")
+            assert run_id1.endswith("-001-abc123de")
+            assert run_id2.endswith("-002-def456gh")
+            assert run_id3.endswith("-003-ghi789ij")
 
-    def test_date_format(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            archive_dir = Path(tmpdir) / "archive"
-            archive_dir.mkdir()
 
-            run_id = generate_run_id(archive_dir)
-            import datetime
-            today = datetime.datetime.now().strftime("%Y%m%d")
-            assert run_id.startswith(today)
-            assert "-" in run_id
+def test_date_format():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        archive_dir = Path(tmpdir) / "archive"
+        archive_dir.mkdir()
 
-    def test_new_day_resets(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            archive_dir = Path(tmpdir) / "archive"
-            archive_dir.mkdir()
+        run_id = generate_run_id(archive_dir, "hash123")
+        import datetime
+        today = datetime.datetime.now().strftime("%Y%m%d")
+        assert run_id.startswith(today)
+        assert "-" in run_id
+        assert "-hash123" in run_id
 
-            run_id1 = generate_run_id(archive_dir)
-            assert run_id1.endswith("-001")
 
-            run_id2 = generate_run_id(archive_dir)
-            assert run_id2.endswith("-002")
+def test_new_day_resets():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        archive_dir = Path(tmpdir) / "archive"
+        archive_dir.mkdir()
+
+        run_id1 = generate_run_id(archive_dir, "hash1")
+        assert run_id1.endswith("-001-hash1")
+
+        run_id2 = generate_run_id(archive_dir, "hash2")
+        assert run_id2.endswith("-002-hash2")
 
 
 class TestCreateRunDirectory:
@@ -148,7 +148,7 @@ class TestWriteRunInfo:
             )
             input_files = [
                 TrackedFile(Path("input.txt"), "hash1", 1.0),
-            ]
+]
             output_files = [
                 TrackedFile(Path("output.txt"), "hash2", 2.0),
             ]
@@ -156,6 +156,13 @@ class TestWriteRunInfo:
                 str(Path("input.txt")): Path(tmpdir) / "data" / "hash1_input.txt",
                 str(Path("output.txt")): Path(tmpdir) / "data" / "hash2_output.txt",
             }
+
+            from rair.archive import compute_combined_hash
+            combined_hash, _ = compute_combined_hash(
+                "abc123",
+                "",
+                [f.hash for f in input_files],
+            )
 
             write_run_info(
                 run_dir,
@@ -166,6 +173,7 @@ class TestWriteRunInfo:
                 input_files,
                 output_files,
                 archived_files,
+                combined_hash,
             )
 
             info_path = run_dir / "info.md"
@@ -190,8 +198,8 @@ class TestCompressDiff:
 -epochs = 10
 +epochs = 15"""
         result = compress_diff(diff)
-        assert "diff --git" in result
-        assert "+epochs = 15" in result
+        assert "diff --git" not in result
+        assert "epochs = 15" in result
         assert "learning_rate = 0.001" not in result
 
     def test_compress_diff_parameter_changes(self):
@@ -204,8 +212,8 @@ class TestCompressDiff:
 -dropout = 0.5
 +dropout = 0.3"""
         result = compress_diff(diff)
-        assert "+learning_rate = 0.01" in result
-        assert "+dropout = 0.3" in result
+        assert "learning_rate = 0.01" in result
+        assert "dropout = 0.3" in result
         assert "batch_size = 32" not in result
 
     def test_compress_diff_no_parameters(self):
@@ -217,9 +225,8 @@ class TestCompressDiff:
 +New section
  Another line"""
         result = compress_diff(diff)
-        assert "diff --git" in result
         lines = result.split('\n')
-        parameter_lines = [l for l in lines if l.startswith('+') and '=' in l]
+        parameter_lines = [l for l in lines if not l.startswith('+') and '=' in l]
         assert len(parameter_lines) == 0
 
     def test_compress_diff_multiple_files(self):
@@ -235,9 +242,8 @@ diff --git a/config.py b/config.py
 @@ -10,0 +10,1 @@
 +setting = enabled"""
         result = compress_diff(diff)
-        assert result.count("diff --git") == 2
-        assert "+param = value" in result
-        assert "+setting = enabled" in result
+        assert "param = value" in result
+        assert "setting = enabled" in result
 
     def test_compress_diff_arithmetic_expressions(self):
         diff = """diff --git a/config.py b/config.py
@@ -250,6 +256,6 @@ diff --git a/config.py b/config.py
 -alpha = beta
 +alpha = beta + 2"""
         result = compress_diff(diff)
-        assert "+learning_rate = base_lr * 0.05" in result
-        assert "+epochs = 150" in result
-        assert "+alpha = beta + 2" in result
+        assert "learning_rate = base_lr * 0.05" in result
+        assert "epochs = 150" in result
+        assert "alpha = beta + 2" in result

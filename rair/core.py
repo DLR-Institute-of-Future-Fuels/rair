@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from .archive import create_run_info, generate_run_id
+from .archive import create_run_info, generate_run_id, compute_combined_hash
 from .git import get_status, get_tracked_files
 from .models import GitInfo
 from .config import RairConfig
@@ -100,6 +100,13 @@ def run(
         git_status = get_status(cwd=base_dir)
         git_info = create_git_info(git_status)
 
+        input_file_hashes = [file.hash for file in before_snapshot.files.values()]
+        full_hash, short_hash = compute_combined_hash(
+            git_info.commit_hash,
+            git_info.diff_hash,
+            input_file_hashes
+        )
+
         if command_override:
             command_args = [command_override, str(script)]
         else:
@@ -147,7 +154,7 @@ def run(
         save_cache(cache_dir, cache)
 
         archive_path = base_dir / config.archive_dir
-        run_id = generate_run_id(archive_path)
+        run_id = generate_run_id(archive_path, short_hash)
         create_run_info(
             run_id=run_id,
             script=script,
@@ -157,6 +164,7 @@ def run(
             input_snapshot=before_snapshot,
             output_snapshot=after_snapshot,
             script_output=script_output,
+            combined_hash=full_hash,
         )
 
         return return_code

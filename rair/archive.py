@@ -1,5 +1,6 @@
 """Archive management for rair."""
 
+import hashlib
 import json
 import shutil
 import time
@@ -62,11 +63,23 @@ def get_next_run_number(archive_dir: Path) -> int:
     return run_number
 
 
-def generate_run_id(archive_dir: Path) -> str:
-    """Generate a unique run ID with date and incrementing number."""
+def generate_run_id(archive_dir: Path, combined_hash: str) -> str:
+    """Generate a unique run ID with date, incrementing number, and combined hash."""
     today = time.strftime("%Y%m%d")
     run_number = get_next_run_number(archive_dir)
-    return f"{today}-{run_number:03d}"
+    return f"{today}-{run_number:03d}-{combined_hash}"
+
+
+def compute_combined_hash(git_hash: str, diff_hash: str, input_hashes: list[str]) -> tuple[str, str]:
+    """Compute combined hash from git commit, diff, and input file hashes.
+
+    Returns:
+        tuple: (full_hash, short_hash_prefix)
+    """
+    combined = git_hash + diff_hash + "".join(sorted(input_hashes))
+    full_hash = hashlib.sha256(combined.encode()).hexdigest()
+    short_hash = full_hash[:8]
+    return (full_hash, short_hash)
 
 
 def create_run_directory(archive_dir: Path, run_id: str) -> Path:
@@ -112,12 +125,20 @@ def compress_diff(diff: str) -> str:
 
     lines = diff.split('\n')
     compressed: list[str] = []
+    change_count: int = 0
 
     for line in lines:
         if line.startswith('diff --git'):
-            compressed.append(line)
+            if not change_count and compressed:
+                compressed.pop()
+            compressed.append('in ' + line.split('/')[-1] + ':')
+            change_count = 0 
         elif line.startswith('+') and '=' in line and not line.startswith('++') and not line.startswith('+ '):
-            compressed.append(line)
+            compressed.append(line[1:])
+            change_count += 1
+
+    if not change_count and compressed:
+        compressed.pop()
 
     return '\n'.join(compressed)
 
@@ -145,6 +166,7 @@ def write_run_info(
     input_files: list[TrackedFile],
     output_files: list[TrackedFile],
     archived_files: dict[str, Path],
+    combined_hash: str,
 ) -> None:
     """Write the info.md file for a run."""
     gitlab_link = get_gitlab_link(git_info.tracking_url, git_info.commit_hash)
@@ -170,17 +192,17 @@ def write_run_info(
         f.write(f"- Short hash: `{git_info.short_hash}`\n")
         f.write(f"- Branch: `{git_info.branch}`\n")
         f.write(f"- Tracking URL: `{git_info.tracking_url}`\n")
+        f.write(f"- Combined hash: `{combined_hash}`\n")
 
         if git_info.diff:
             compressed = compress_diff(git_info.diff)
             
             f.write("\n## Uncommitted Changes\n\n")
             if compressed:
-                f.write("```diff\n")
+                f.write("```\n")
                 f.write(compressed)
                 f.write("\n```\n\n")
                 diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
-                f.write("*Full diff saved to git_diff.patch*\n")
                 f.write("\n## Restore Code\n\n")
                 f.write("To restore the code state for this run, run:\n\n")
                 f.write("```bash\n")
@@ -237,6 +259,7 @@ def write_run_json(
     output_files: list[TrackedFile],
     archived_files: dict[str, Path],
     has_output: bool = False,
+    combined_hash: str = "",
 ) -> None:
     """Write the run.json file for a run."""
     run_data: dict[str, Any] = {
@@ -251,6 +274,7 @@ def write_run_json(
             "diff_hash": git_info.diff_hash,
             "has_diff": bool(git_info.diff),
         },
+        "combined_hash": combined_hash,
         "input_files": [
             _format_file_for_json(project_dir, archive_dir, f, archived_files.get(str(f.path)))
             for f in sorted(input_files, key=lambda x: str(x.path))
@@ -296,6 +320,7 @@ def create_run_info(
     input_snapshot: FileSnapshot,
     output_snapshot: FileSnapshot,
     script_output: str | None = None,
+    combined_hash: str = "",
 ) -> None:
     """Create a complete run with all data archived and info written."""
     run_dir = create_run_directory(archive_dir, run_id)
@@ -313,6 +338,7 @@ def create_run_info(
         list(input_snapshot.files.values()),
         list(output_snapshot.files.values()),
         archived_files,
+        combined_hash,
     )
 
     has_output = script_output is not None and script_output != ""
@@ -329,5 +355,6 @@ def create_run_info(
         list(input_snapshot.files.values()),
         list(output_snapshot.files.values()),
         archived_files,
-        has_output=has_output,
+        has_output,
+        combined_hash,
     )
