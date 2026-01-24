@@ -3,12 +3,7 @@
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Optional, ParamSpec, TypeVar
-from .utils import hash_to_short
-
-T = TypeVar("T")
-P = ParamSpec("P")
-
+from typing import Optional
 
 def _call_git_command(
     args: list[str],

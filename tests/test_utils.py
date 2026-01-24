@@ -1,6 +1,5 @@
 """Tests for utils.py."""
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -8,9 +7,7 @@ from rair.utils import (
     safe_load_json,
     safe_write_json,
     ensure_directory,
-    is_hidden,
-    hash_to_short,
-    HASH_LENGTH,
+    is_hidden
 )
 
 
@@ -129,20 +126,3 @@ class TestIsHidden:
 
     def test_string_normal(self):
         assert not is_hidden("file.txt")
-
-
-class TestHashToShort:
-    def test_truncates_to_hash_length(self):
-        full_hash = "a" * 50
-        result = hash_to_short(full_hash)
-        assert len(result) == HASH_LENGTH
-        assert result == "a" * HASH_LENGTH
-
-    def test_shorter_hash(self):
-        short_hash = "abc"
-        result = hash_to_short(short_hash)
-        assert result == "abc"
-
-    def test_empty(self):
-        result = hash_to_short("")
-        assert result == ""

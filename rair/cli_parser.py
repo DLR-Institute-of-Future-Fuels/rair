@@ -1,6 +1,6 @@
 """CLI argument parsing utilities for rair."""
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 SCRIPT_EXTENSIONS = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe"}
 
@@ -32,31 +32,6 @@ def is_script_extension(value: str) -> bool:
         if value.lower().endswith(ext):
             return True
     return False
-
-
-def parse_command_args(args: list[str]) -> Tuple[Optional[str], str, list[str]]:
-    """Parse flexible command syntax to extract command, script, and remaining args.
-
-    Args:
-        args: List of command-line arguments after the program name
-
-    Returns:
-        Tuple of (command, script, remaining_args)
-        - command: None if auto-detect mode, or explicit command like "python"
-        - script: Path to script file
-        - remaining_args: Arguments to be processed
-    """
-    if not args:
-        return None, "", []
-
-    first_arg = args[0]
-
-    if is_script_extension(first_arg):
-        return None, first_arg, args[1:]
-    else:
-        if len(args) < 2:
-            return None, first_arg, []
-        return first_arg, args[1], args[2:]
 
 
 def separate_args(args: list[str]) -> Tuple[list[str], list[str]]:

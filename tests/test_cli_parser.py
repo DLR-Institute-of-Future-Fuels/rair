@@ -2,7 +2,6 @@
 
 from rair.cli_parser import (
     is_script_extension,
-    parse_command_args,
     separate_args,
     SCRIPT_EXTENSIONS,
     RAIR_OPTIONS,
@@ -50,60 +49,6 @@ class TestIsScriptExtension:
         assert is_script_extension("path/to/script.py") is True
         assert is_script_extension("path/to/script") is False
         assert is_script_extension("C:\\path\\to\\script.py") is True
-
-
-class TestParseCommandArgs:
-    def test_script_extension_auto_detect(self):
-        command, script, remaining = parse_command_args(["myscript.py"])
-        assert command is None
-        assert script == "myscript.py"
-        assert remaining == []
-
-    def test_script_extension_with_args(self):
-        command, script, remaining = parse_command_args(
-            ["myscript.py", "arg1", "arg2"]
-        )
-        assert command is None
-        assert script == "myscript.py"
-        assert remaining == ["arg1", "arg2"]
-
-    def test_explicit_command(self):
-        command, script, remaining = parse_command_args(["python", "myscript.py"])
-        assert command == "python"
-        assert script == "myscript.py"
-        assert remaining == []
-
-    def test_explicit_command_with_args(self):
-        command, script, remaining = parse_command_args(
-            ["python", "myscript.py", "arg1", "arg2"]
-        )
-        assert command == "python"
-        assert script == "myscript.py"
-        assert remaining == ["arg1", "arg2"]
-
-    def test_explicit_command_no_script(self):
-        command, script, remaining = parse_command_args(["python"])
-        assert command is None
-        assert script == "python"
-        assert remaining == []
-
-    def test_empty_args(self):
-        command, script, remaining = parse_command_args([])
-        assert command is None
-        assert script == ""
-        assert remaining == []
-
-    def test_bash_script(self):
-        command, script, remaining = parse_command_args(["myscript.sh"])
-        assert command is None
-        assert script == "myscript.sh"
-        assert remaining == []
-
-    def test_make_command(self):
-        command, script, remaining = parse_command_args(["make", "--all"])
-        assert command == "make"
-        assert script == "--all"
-        assert remaining == []
 
 
 class TestSeparateArgs:

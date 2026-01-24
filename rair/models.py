@@ -1,7 +1,6 @@
 """Data models for rair."""
 
-import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -19,30 +18,6 @@ class TrackedFile:
 
     def matches(self, other: "TrackedFile") -> bool:
         return self.hash == other.hash
-
-
-@dataclass
-class RunConfig:
-    """Configuration for a single rair run.
-
-    .. deprecated::
-        Use :class:`rair.config.RairConfig` instead.
-        The RunConfig will be removed in a future version.
-    """
-
-    input_globs: list[str] = field(default_factory=list[str])
-    output_globs: list[str] = field(default_factory=list[str])
-    exclude_globs: list[str] = field(default_factory=list[str])
-    archive_dir: Path = Path("rairarchive")
-    capture_output: bool = True
-
-    def __post_init__(self) -> None:
-        warnings.warn(
-            "RunConfig is deprecated. Use RairConfig from rair.config instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
 
 @dataclass
 class FileSnapshot:
@@ -76,16 +51,3 @@ class GitInfo:
     diff: str
     diff_hash: str
     tracking_url: str
-
-
-@dataclass
-class RunInfo:
-    """Metadata for a completed run."""
-
-    run_id: str
-    git_info: GitInfo
-    script: Path
-    archive_dir: Path
-    run_timestamp: str
-    input_files: list[str]
-    output_files: list[str]

@@ -41,7 +41,7 @@ class TestTrackedFile:
         assert not tracked1.matches(tracked2)
 
 
-class TestRunConfig:
+class TestRairConfig:
     def test_default_values(self):
         config = RairConfig()
         assert config.input_glob == []

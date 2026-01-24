@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock, Mock
 
-from rair.core import run, run_simple
+from rair.core import run
 from rair.config import RairConfig
 
 
@@ -241,54 +241,6 @@ with open('output.txt', 'w') as f:
             run(script_path, [], config)
             assert os.getcwd() == original_cwd
 
-
-class TestRunSimple:
-    def test_run_simple_python(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-
-            script_path = tmpdir_path / "test.py"
-            script_path.write_text("print('hello')")
-
-            exit_code = run_simple(script_path, [], [], [])
-            assert exit_code == 0
-
-    def test_run_simple_with_archive(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-
-            script_path = tmpdir_path / "test.py"
-            script_path.write_text("print('hello')")
-
-            exit_code = run_simple(
-                script_path,
-                [],
-                [],
-                [],
-                None,
-                tmpdir_path / "my_archive",
-            )
-            assert exit_code == 0
-
-    def test_run_simple_with_glob_patterns(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-
-            script_path = tmpdir_path / "test.py"
-            script_path.write_text("print('hello')")
-
-            input_file = tmpdir_path / "input.txt"
-            input_file.write_text("input")
-
-            exit_code = run_simple(
-                script_path,
-                [],
-                ["input.txt"],
-                [],
-                None,
-                tmpdir_path / "archive",
-            )
-            assert exit_code == 0
 
 class TestRunWithCommandOverride:
     def test_run_with_command_override_python(self):

@@ -170,21 +170,3 @@ def run(
         return return_code
     finally:
         os.chdir(original_cwd)
-
-
-def run_simple(
-    script: Path,
-    args: list[str],
-    input_glob: list[str],
-    output_glob: list[str],
-    exclude_glob: list[str] | None = None,
-    archive_dir: Path | None = None,
-) -> int:
-    """Simple entry point with minimal configuration."""
-    config = RairConfig(
-        input_glob=input_glob,
-        output_glob=output_glob,
-        exclude_glob=exclude_glob or [],
-        archive_dir=archive_dir or Path("rairarchive"),
-    )
-    return run(script, args, config)

@@ -64,15 +64,3 @@ def is_hidden(path: Path | str) -> bool:
     """
     name = path.name if isinstance(path, Path) else Path(path).name
     return name.startswith('.')
-
-
-def hash_to_short(hash_value: str) -> str:
-    """Truncate hash to standard length.
-
-    Args:
-        hash_value: Full hash string
-
-    Returns:
-        Truncated hash (20 characters)
-    """
-    return hash_value[:HASH_LENGTH]
