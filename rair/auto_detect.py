@@ -1,7 +1,7 @@
 """Auto-discovery of input and output files for rair."""
 
 from pathlib import Path
-from typing import Optional, Set
+from typing import Optional, Generator
 
 from .utils import is_hidden
 
@@ -85,21 +85,30 @@ def is_in_hidden_directory(file_path: Path, base_dir: Path) -> bool:
 
 def get_auto_discover_candidates(
     base_dir: Path,
-    tracked_files: Optional[list[Path]] = None,
+    exclude: Optional[list[Path | str]] = None,
 ) -> list[Path]:
     """Get files that should be auto-discovered (not hidden, not git-tracked).
 
     Args:
         base_dir: Directory to search in
-        tracked_files: List of git-tracked files to exclude
+        exclude: List of files and glob patterns to exclude
 
     Returns:
         List of files that are candidates for auto-discovery
     """
-    if tracked_files is None:
-        tracked_files = []
+    def resolve_exclude(files: list[Path | str]) -> Generator[Path, None, None]:
+        for f in files:
+            if isinstance(f, Path):
+                yield f
+            else:
+                for gf in base_dir.rglob(f):
+                    yield gf
 
-    tracked_set: Set[Path] = set(tracked_files)
+    if exclude is None:
+        excluded_files: set[Path] = set()
+    else:
+        excluded_files = set(resolve_exclude(exclude))
+
     candidates: list[Path] = []
 
     for item in base_dir.rglob("*"):
@@ -110,7 +119,7 @@ def get_auto_discover_candidates(
             if is_in_hidden_directory(item, base_dir):
                 continue
 
-            if item in tracked_set:
+            if item in excluded_files:
                 continue
 
             candidates.append(item)
