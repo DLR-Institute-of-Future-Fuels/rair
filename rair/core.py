@@ -154,7 +154,7 @@ def run(
         save_cache(cache_dir, cache)
 
         archive_path = base_dir / config.archive_dir
-        run_id = generate_run_id(archive_path, short_hash)
+        run_id = generate_run_id(cache_dir, short_hash)
         create_run_info(
             run_id=run_id,
             script=script,

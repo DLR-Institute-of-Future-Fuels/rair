@@ -11,7 +11,7 @@ reference.
 ## Installation
 
 ```bash
-pip install rair
+pip install git+https://gitlab.dlr.de/krus_ni/simple_data_versioning@main
 ```
 
 ## How to use

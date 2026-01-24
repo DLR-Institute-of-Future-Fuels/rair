@@ -28,16 +28,15 @@ def copy_to_data_archive(file_path: Path, data_dir: Path) -> Path:
     return dest_path
 
 
-def get_run_counter_path(archive_dir: Path) -> Path:
+def get_run_counter_path(cache_dir: Path) -> Path:
     """Get the path to the run counter file."""
-    runs_dir = archive_dir / "runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    return runs_dir / ".run_counter.json"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir / "run_counter.json"
 
 
-def get_next_run_number(archive_dir: Path) -> int:
+def get_next_run_number(cache_dir: Path) -> int:
     """Get the next run number for today, initializing if needed."""
-    counter_path = get_run_counter_path(archive_dir)
+    counter_path = get_run_counter_path(cache_dir)
     today = time.strftime("%Y%m%d")
 
     if counter_path.exists():
@@ -63,10 +62,10 @@ def get_next_run_number(archive_dir: Path) -> int:
     return run_number
 
 
-def generate_run_id(archive_dir: Path, combined_hash: str) -> str:
+def generate_run_id(cache_dir: Path, combined_hash: str) -> str:
     """Generate a unique run ID with date, incrementing number, and combined hash."""
     today = time.strftime("%Y%m%d")
-    run_number = get_next_run_number(archive_dir)
+    run_number = get_next_run_number(cache_dir)
     return f"{today}-{run_number:03d}-{combined_hash}"
 
 
