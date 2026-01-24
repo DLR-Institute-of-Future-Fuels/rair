@@ -8,6 +8,7 @@ from typer import Argument, Option
 
 from .config import load_config, merge_config_with_cli, RairConfig
 from .core import run
+from .cli_parser import is_script_extension
 from .config import RairConfig
 
 app = typer.Typer(
@@ -18,13 +19,9 @@ app = typer.Typer(
 
 @app.command()
 def main(
-    script: Path = Argument(
+    script_or_command: str = Argument(
         ...,
-        help="Python script to run",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        resolve_path=True,
+        help="Script path (with extension) or command (python, bash, make, etc.)",
     ),
     args: list[str] = Argument(
         default=[],
@@ -63,8 +60,26 @@ def main(
         help="Capture and save script output to out.txt",
     ),
 ) -> None:
-    """Run a Python script with data versioning."""
-    project_dir = script.resolve().parent
+    """Run a script with data versioning.
+
+    Examples:
+        rair myscript.py arg1 arg2
+        rair python mymodel.py arg1 arg2
+        rair make --all
+    """
+
+    if is_script_extension(script_or_command):
+        command = None
+        script = Path(script_or_command)
+        script_args = args
+    else:
+        command = script_or_command
+        if not args:
+            raise typer.BadParameter(f"No script specified after command '{command}'")
+        script = Path(args[0])
+        script_args = args[1:]
+
+    project_dir = script.parent
 
     file_config = load_config(project_dir, config.name if config else None)
 
@@ -84,7 +99,7 @@ def main(
         capture_output=capture_output,
     )
 
-    exit_code = run(script, args, run_config)
+    exit_code = run(script, script_args, run_config, command)
 
     raise typer.Exit(code=exit_code)
 

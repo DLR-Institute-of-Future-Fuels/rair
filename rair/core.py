@@ -4,11 +4,13 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 from .archive import create_run_info, generate_run_id
 from .git import get_status
 from .models import FileSnapshot, GitInfo
 from .config import RairConfig
+from .script_type import get_run_command, get_command_args, detect_script_type
 from .tracking import (
     create_snapshot,
     discover_files,
@@ -44,8 +46,16 @@ def run(
     script: Path,
     args: list[str],
     config: RairConfig,
+    command_override: Optional[str] = None,
 ) -> int:
-    """Run a script with data versioning."""
+    """Run a script with data versioning.
+
+    Args:
+        script: Path to the script file
+        args: Arguments to pass to the script
+        config: Configuration for data versioning
+        command_override: Optional command to use instead of auto-detection
+    """
     base_dir = script.resolve().parent
     original_cwd = os.getcwd()
 
@@ -61,12 +71,19 @@ def run(
         git_status = get_status(cwd=base_dir)
         git_info = create_git_info(git_status)
 
+        if command_override:
+            command_args = [command_override, str(script)]
+        else:
+            detected_type = detect_script_type(script)
+            command_args = get_command_args(script, detected_type)
+        full_command = command_args + args
+
         script_output: str | None = None
         return_code: int
 
         if config.capture_output:
             process = subprocess.Popen(
-                [sys.executable, str(script)] + args,
+                full_command,
                 cwd=str(base_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -84,7 +101,7 @@ def run(
             return_code = process.returncode
         else:
             result = subprocess.run(
-                [sys.executable, str(script)] + args,
+                full_command,
                 cwd=str(base_dir),
             )
             return_code = result.returncode
