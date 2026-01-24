@@ -1,6 +1,6 @@
 # Rair - Simple Data Versioning for Python Experiments
 
-This is an experimental Python package for simple data versioning.
+This is an Python package for data versioning.
 
 When running experiments, model parameters and model details needs to be tweaked
 frequently. Committing minimal changes clutters the git history and makes it hard to track
@@ -23,16 +23,19 @@ rair myscript.py arg1 arg2
 # Run with explicit command
 rair python mymodel.py arg1 arg2
 
-# The first argument can be a script or arbitrary command
+# The first argument can be a Python script or any arbitrary command
 rair make --all
 
 # It can be manually specified which files to track
-rair --input "data/*.csv" --output "results/*.json" myscript.py 
+rair --input "data/*.csv" --output "results/*.json" myscript.py
+
+# If only input files are specified, outputs are auto-discovered
+rair --input "data/*.csv" --input parameters.txt myscript.py 
 ```
 
 ### Configuration
 
-Configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`.
+In alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`.
 
 **.rair.toml:**
 ```toml
@@ -108,13 +111,13 @@ The info file stored with each result includes:
 
 The structure of the created result directory can look like this:
 ```
-rairarchive/
-    20260106-154510_44ec730-1a2b3c/
+rairarchive/runs/
+    20260124-001-ee207dee/
         git_diff.patch
         info.md
         run.json
         out.txt
-    20260107-101530_44ec730/
+    20260124-002-44ec730/
         info.md
         run.json
         out.txt
