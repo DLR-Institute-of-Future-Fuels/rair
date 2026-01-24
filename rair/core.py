@@ -7,7 +7,7 @@ from typing import Optional
 
 from .archive import create_run_info, generate_run_id
 from .git import get_status
-from .models import FileSnapshot, GitInfo
+from .models import GitInfo
 from .config import RairConfig
 from .script_type import get_command_args, detect_script_type
 from .tracking import (
@@ -112,7 +112,7 @@ def run(
 
         archive_path = base_dir / config.archive_dir
         run_id = generate_run_id(archive_path)
-        run_info = create_run_info(
+        create_run_info(
             run_id=run_id,
             script=script,
             project_dir=base_dir,

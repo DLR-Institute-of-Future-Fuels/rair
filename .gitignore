@@ -3,3 +3,5 @@
 __pycache__
 /results
 *.egg-info
+/rairarchive
+.rair_cache/file_cache.json

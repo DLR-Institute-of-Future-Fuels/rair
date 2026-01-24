@@ -5,7 +5,7 @@ import shutil
 import time
 from pathlib import Path
 from .hashing import compute_file_hash
-from .models import FileSnapshot, GitInfo, RunInfo, TrackedFile
+from .models import FileSnapshot, GitInfo, TrackedFile
 from typing import Any
 
 def get_unique_data_path(data_dir: Path, file_hash: str, original_name: str) -> Path:
@@ -93,6 +93,35 @@ def _make_relative_path(project_dir: Path, archive_dir: Path, path: Path) -> Pat
     return path
 
 
+def compress_diff(diff: str) -> str:
+    """Compress git diff to show only changed files and parameter changes.
+
+    Extracts:
+    - Filenames that changed (lines starting with "diff --git")
+    - Added lines with parameters including arithmetic expressions 
+      (lines starting with single "+" containing "=" representing assignments)
+
+    Args:
+        diff: Full git diff output
+
+    Returns:
+        Compressed version showing only changed files and parameters
+    """
+    if not diff:
+        return ""
+
+    lines = diff.split('\n')
+    compressed: list[str] = []
+
+    for line in lines:
+        if line.startswith('diff --git'):
+            compressed.append(line)
+        elif line.startswith('+') and '=' in line and not line.startswith('++') and not line.startswith('+ '):
+            compressed.append(line)
+
+    return '\n'.join(compressed)
+
+
 def _format_file_for_display(
     project_dir: Path,
     archive_dir: Path,
@@ -143,18 +172,32 @@ def write_run_info(
         f.write(f"- Tracking URL: `{git_info.tracking_url}`\n")
 
         if git_info.diff:
+            compressed = compress_diff(git_info.diff)
+            
             f.write("\n## Uncommitted Changes\n\n")
-            f.write("```diff\n")
-            f.write(git_info.diff)
-            f.write("\n```\n")
-
-            diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
-            f.write("\n## Restore Code\n\n")
-            f.write("To restore the code state for this run, run:\n\n")
-            f.write("```bash\n")
-            f.write(f"git checkout {git_info.commit_hash}\n")
-            f.write(f"git apply {diff_path_display}\n")
-            f.write("```\n")
+            if compressed:
+                f.write("```diff\n")
+                f.write(compressed)
+                f.write("\n```\n\n")
+                diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
+                f.write("*Full diff saved to git_diff.patch*\n")
+                f.write("\n## Restore Code\n\n")
+                f.write("To restore the code state for this run, run:\n\n")
+                f.write("```bash\n")
+                f.write(f"git checkout {git_info.commit_hash}\n")
+                f.write(f"git apply {diff_path_display}\n")
+                f.write("```")
+            else:
+                f.write("```diff\n")
+                f.write(git_info.diff)
+                f.write("\n```\n\n")
+                diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
+                f.write("\n## Restore Code\n\n")
+                f.write("To restore the code state for this run, run:\n\n")
+                f.write("```bash\n")
+                f.write(f"git checkout {git_info.commit_hash}\n")
+                f.write(f"git apply {diff_path_display}\n")
+                f.write("```")
 
         f.write("\n## Input Files\n\n")
         for tracked in sorted(input_files, key=lambda x: str(x.path)):
@@ -253,7 +296,7 @@ def create_run_info(
     input_snapshot: FileSnapshot,
     output_snapshot: FileSnapshot,
     script_output: str | None = None,
-) -> RunInfo:
+) -> None:
     """Create a complete run with all data archived and info written."""
     run_dir = create_run_directory(archive_dir, run_id)
     data_dir = archive_dir / "data"
@@ -287,14 +330,4 @@ def create_run_info(
         list(output_snapshot.files.values()),
         archived_files,
         has_output=has_output,
-    )
-
-    return RunInfo(
-        run_id=run_id,
-        git_info=git_info,
-        script=script,
-        archive_dir=run_dir,
-        run_timestamp=time.strftime("%Y-%m-%d %H:%M:%S"),
-        input_files=list(input_snapshot.files.keys()),
-        output_files=list(output_snapshot.files.keys()),
     )

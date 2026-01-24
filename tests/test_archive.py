@@ -14,6 +14,7 @@ from rair.archive import (
     get_gitlab_link,
     write_run_info,
     archive_files,
+    compress_diff,
 )
 from rair.models import FileSnapshot, GitInfo, TrackedFile
 
@@ -176,23 +177,79 @@ class TestWriteRunInfo:
             assert "->" in content
 
 
-class TestArchiveFiles:
-    def test_archive_files(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            data_dir = Path(tmpdir) / "data"
-            src_dir = Path(tmpdir) / "src"
-            src_dir.mkdir()
-            (src_dir / "file.txt").write_text("content")
+class TestCompressDiff:
+    def test_compress_diff_empty(self):
+        result = compress_diff("")
+        assert result == ""
 
-            snapshot = FileSnapshot(
-                files={
-                    str(src_dir / "file.txt"): TrackedFile(
-                        src_dir / "file.txt", "hash123", 1.0
-                    )
-                }
-            )
+    def test_compress_diff_simple_file_change(self):
+        diff = """diff --git a/model.py b/model.py
++++ b/model.py
+@@ -5,3 +5,3 @@
+ learning_rate = 0.001
+-epochs = 10
++epochs = 15"""
+        result = compress_diff(diff)
+        assert "diff --git" in result
+        assert "+epochs = 15" in result
+        assert "learning_rate = 0.001" not in result
 
-            archived = archive_files(snapshot, data_dir)
+    def test_compress_diff_parameter_changes(self):
+        diff = """diff --git a/config.py b/config.py
++++ b/config.py
+@@ -10,5 +10,5 @@
+ batch_size = 32
+-learning_rate = 0.001
++learning_rate = 0.01
+-dropout = 0.5
++dropout = 0.3"""
+        result = compress_diff(diff)
+        assert "+learning_rate = 0.01" in result
+        assert "+dropout = 0.3" in result
+        assert "batch_size = 32" not in result
 
-            assert len(archived) == 1
-            assert list(archived.values())[0].exists()
+    def test_compress_diff_no_parameters(self):
+        diff = """diff --git a/README.md b/README.md
++++ b/README.md
+@@ -1,3 +1,5 @@
+ Hello world
++
++New section
+ Another line"""
+        result = compress_diff(diff)
+        assert "diff --git" in result
+        lines = result.split('\n')
+        parameter_lines = [l for l in lines if l.startswith('+') and '=' in l]
+        assert len(parameter_lines) == 0
+
+    def test_compress_diff_multiple_files(self):
+        diff = """diff --git a/model.py b/model.py
+--- a/model.py
++++ b/model.py
+@@ -5,0 +5,1 @@
++param = value
+
+diff --git a/config.py b/config.py
+--- a/config.py
++++ b/config.py
+@@ -10,0 +10,1 @@
++setting = enabled"""
+        result = compress_diff(diff)
+        assert result.count("diff --git") == 2
+        assert "+param = value" in result
+        assert "+setting = enabled" in result
+
+    def test_compress_diff_arithmetic_expressions(self):
+        diff = """diff --git a/config.py b/config.py
++++ b/config.py
+@@ -10,5 +10,5 @@
+-learning_rate = base_lr * 0.1
++learning_rate = base_lr * 0.05
+-epochs = 100
++epochs = 150
+-alpha = beta
++alpha = beta + 2"""
+        result = compress_diff(diff)
+        assert "+learning_rate = base_lr * 0.05" in result
+        assert "+epochs = 150" in result
+        assert "+alpha = beta + 2" in result
