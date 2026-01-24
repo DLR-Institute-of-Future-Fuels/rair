@@ -1,8 +1,7 @@
 """Script type detection for rair."""
 
-import subprocess
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 
 def detect_script_type(script_path: Path) -> str:
