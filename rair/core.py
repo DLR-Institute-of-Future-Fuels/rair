@@ -7,7 +7,8 @@ from pathlib import Path
 
 from .archive import create_run_info, generate_run_id
 from .git import get_status
-from .models import FileSnapshot, GitInfo, RunConfig, TrackedFile
+from .models import FileSnapshot, GitInfo
+from .config import RairConfig
 from .tracking import (
     create_snapshot,
     discover_files,
@@ -42,7 +43,7 @@ def create_git_info(status: dict[str, str]) -> GitInfo:
 def run(
     script: Path,
     args: list[str],
-    config: RunConfig,
+    config: RairConfig,
 ) -> int:
     """Run a script with data versioning."""
     base_dir = script.resolve().parent
@@ -54,7 +55,7 @@ def run(
         cache_dir = base_dir / ".rair_cache"
         cache = load_cache(cache_dir)
 
-        input_files = collect_files(base_dir, config.input_globs, config.exclude_globs)
+        input_files = collect_files(base_dir, config.input_glob, config.exclude_glob)
         before_snapshot = create_snapshot(input_files, cache)
 
         git_status = get_status(cwd=base_dir)
@@ -88,7 +89,7 @@ def run(
             )
             return_code = result.returncode
 
-        output_files = collect_files(base_dir, config.output_globs, config.exclude_globs)
+        output_files = collect_files(base_dir, config.output_glob, config.exclude_glob)
         after_snapshot = create_snapshot(output_files, cache)
 
         save_cache(cache_dir, cache)
@@ -114,16 +115,16 @@ def run(
 def run_simple(
     script: Path,
     args: list[str],
-    input_globs: list[str],
-    output_globs: list[str],
-    exclude_globs: list[str] | None = None,
+    input_glob: list[str],
+    output_glob: list[str],
+    exclude_glob: list[str] | None = None,
     archive_dir: Path | None = None,
 ) -> int:
     """Simple entry point with minimal configuration."""
-    config = RunConfig(
-        input_globs=input_globs,
-        output_globs=output_globs,
-        exclude_globs=exclude_globs or [],
+    config = RairConfig(
+        input_glob=input_glob,
+        output_glob=output_glob,
+        exclude_glob=exclude_glob or [],
         archive_dir=archive_dir or Path("rairarchive"),
     )
     return run(script, args, config)

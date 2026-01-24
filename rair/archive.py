@@ -5,8 +5,8 @@ import shutil
 import time
 from pathlib import Path
 from .hashing import compute_file_hash
-
-from .models import FileSnapshot, GitInfo, RunConfig, RunInfo, TrackedFile
+from .models import FileSnapshot, GitInfo, RunInfo, TrackedFile
+from typing import Any
 
 def get_unique_data_path(data_dir: Path, file_hash: str, original_name: str) -> Path:
     """Get the path for a unique data file, deduplicated by hash."""
@@ -16,10 +16,7 @@ def get_unique_data_path(data_dir: Path, file_hash: str, original_name: str) -> 
     return data_dir / unique_name
 
 
-def copy_to_data_archive(
-    file_path: Path,
-    data_dir: Path,
-) -> Path:
+def copy_to_data_archive(file_path: Path, data_dir: Path) -> Path:
     """Copy a file to the data archive, deduplicated by hash."""
     file_hash = compute_file_hash(file_path)
     dest_path = get_unique_data_path(data_dir, file_hash, file_path.name)
@@ -106,8 +103,8 @@ def _format_file_for_display(
     display_path = _make_relative_path(project_dir, archive_dir, tracked.path)
     if archived_path:
         display_archived = _make_relative_path(project_dir, archive_dir, archived_path)
-        return f"`{display_path}` -> `{display_archived}` (hash: `{tracked.hash_prefix}`)"
-    return f"`{display_path}` (hash: `{tracked.hash_prefix}`)"
+        return f"`{display_path.as_posix()}` -> `{display_archived.as_posix()}` (hash: `{tracked.hash_prefix}`)"
+    return f"`{display_path.as_posix()}` (hash: `{tracked.hash_prefix}`)"
 
 
 def write_run_info(
@@ -177,13 +174,13 @@ def _format_file_for_json(
     archive_dir: Path,
     tracked: TrackedFile,
     archived_path: Path | None,
-) -> dict:
+) -> dict[str, str | None]:
     """Format a file entry for run.json."""
     return {
-        "path": str(_make_relative_path(project_dir, archive_dir, tracked.path)),
+        "path": _make_relative_path(project_dir, archive_dir, tracked.path).as_posix(),
         "hash": tracked.hash,
         "hash_prefix": tracked.hash_prefix,
-        "archived_path": str(_make_relative_path(project_dir, archive_dir, archived_path)) if archived_path else None,
+        "archived_path": _make_relative_path(project_dir, archive_dir, archived_path).as_posix() if archived_path else None,
     }
 
 
@@ -199,7 +196,7 @@ def write_run_json(
     has_output: bool = False,
 ) -> None:
     """Write the run.json file for a run."""
-    run_data = {
+    run_data: dict[str, Any] = {
         "run_id": run_dir.name,
         "run_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "script": str(_make_relative_path(project_dir, archive_dir, script)),

@@ -3,7 +3,7 @@
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -16,9 +16,9 @@ class RairConfig:
     """Configuration for a rair run."""
 
     archive_dir: Path = field(default_factory=lambda: Path("rairarchive"))
-    input_glob: list[str] = field(default_factory=list)
-    output_glob: list[str] = field(default_factory=list)
-    exclude_glob: list[str] = field(default_factory=list)
+    input_glob: list[str] = field(default_factory=list[str])
+    output_glob: list[str] = field(default_factory=list[str])
+    exclude_glob: list[str] = field(default_factory=list[str])
     capture_output: bool = True
 
 
@@ -50,7 +50,7 @@ def find_pyproject_toml(project_dir: Path) -> Optional[Path]:
     return None
 
 
-def load_toml_config(config_path: Path) -> dict:
+def load_toml_config(config_path: Path) -> dict[str, Any]:
     """Load configuration from a TOML file.
 
     Args:
@@ -63,7 +63,7 @@ def load_toml_config(config_path: Path) -> dict:
         return tomllib.load(f)
 
 
-def parse_rair_config(config_data: dict) -> RairConfig:
+def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
     """Parse rair configuration from loaded TOML data.
 
     Args:

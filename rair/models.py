@@ -3,7 +3,6 @@
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
 
 
 @dataclass
@@ -31,9 +30,9 @@ class RunConfig:
         The RunConfig will be removed in a future version.
     """
 
-    input_globs: list[str] = field(default_factory=list)
-    output_globs: list[str] = field(default_factory=list)
-    exclude_globs: list[str] = field(default_factory=list)
+    input_globs: list[str] = field(default_factory=list[str])
+    output_globs: list[str] = field(default_factory=list[str])
+    exclude_globs: list[str] = field(default_factory=list[str])
     archive_dir: Path = Path("rairarchive")
     capture_output: bool = True
 
@@ -52,7 +51,7 @@ class FileSnapshot:
     files: dict[str, TrackedFile]
 
     def get_changed(self, other: "FileSnapshot") -> list[str]:
-        changed = []
+        changed: list[str] = []
         for path, current in self.files.items():
             if path not in other.files:
                 changed.append(path)

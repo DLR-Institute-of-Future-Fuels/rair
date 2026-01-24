@@ -2,18 +2,13 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import pytest
-
 from rair.tracking import (
     compute_file_hash,
-    get_mtime,
     discover_files,
     create_snapshot,
     load_cache,
     save_cache,
 )
-from rair.models import FileSnapshot, TrackedFile
 
 
 class TestComputeFileHash:
@@ -96,7 +91,7 @@ class TestCreateSnapshot:
             (dir_path / "test.txt").write_text("content")
             path = dir_path / "test.txt"
 
-            cache = {}
+            cache: dict[str, tuple[str, float]] = {}
             snapshot1 = create_snapshot([path], cache)
             assert len(snapshot1.files) == 1
 

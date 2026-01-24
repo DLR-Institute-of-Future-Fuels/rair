@@ -8,7 +8,7 @@ from typer import Argument, Option
 
 from .config import load_config, merge_config_with_cli, RairConfig
 from .core import run
-from .models import RunConfig
+from .config import RairConfig
 
 app = typer.Typer(
     add_completion=False,
@@ -27,7 +27,7 @@ def main(
         resolve_path=True,
     ),
     args: list[str] = Argument(
-        default=None,
+        default=[],
         help="Arguments to pass to the script",
     ),
     config: Optional[Path] = Option(
@@ -76,17 +76,15 @@ def main(
         archive_dir,
     )
 
-    run_config = RunConfig(
-        input_globs=merged_config.input_glob,
-        output_globs=merged_config.output_glob,
-        exclude_globs=merged_config.exclude_glob,
+    run_config = RairConfig(
+        input_glob=merged_config.input_glob,
+        output_glob=merged_config.output_glob,
+        exclude_glob=merged_config.exclude_glob,
         archive_dir=merged_config.archive_dir,
         capture_output=capture_output,
     )
 
-    script_args = args if args is not None else []
-
-    exit_code = run(script, script_args, run_config)
+    exit_code = run(script, args, run_config)
 
     raise typer.Exit(code=exit_code)
 

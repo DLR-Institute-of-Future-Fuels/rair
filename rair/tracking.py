@@ -1,6 +1,5 @@
 """File tracking and caching for rair."""
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Optional

@@ -3,7 +3,7 @@
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Callable, Optional, ParamSpec, TypeVar
+from typing import Optional, ParamSpec, TypeVar
 
 T = TypeVar("T")
 P = ParamSpec("P")

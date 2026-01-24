@@ -3,12 +3,11 @@
 import json
 import tempfile
 from pathlib import Path
-import pytest
 
 from rair.archive import (
     write_run_json,
-    _make_relative_path,
-    _format_file_for_json,
+    _make_relative_path, # type: ignore
+    _format_file_for_json, # type: ignore
 )
 from rair.models import GitInfo, TrackedFile
 
@@ -138,9 +137,9 @@ class TestWriteRunJson:
                 diff_hash="diff1234",
                 tracking_url="https://github.com/user/repo",
             )
-            input_files = []
-            output_files = []
-            archived_files = {}
+            input_files: list[TrackedFile] = []
+            output_files: list[TrackedFile] = []
+            archived_files: dict[str, Path] = {}
 
             write_run_json(
                 run_dir,
@@ -228,7 +227,7 @@ class TestWriteRunJson:
             input_files = [
                 TrackedFile(project_dir / "data/input.txt", "hash1", 1.0),
             ]
-            output_files = []
+            output_files: list[TrackedFile] = []
             archived_files = {
                 str(project_dir / "data/input.txt"): archive_dir / "data" / "hash1_input.txt",
             }
@@ -248,5 +247,5 @@ class TestWriteRunJson:
                 data = json.load(f)
 
             assert data["script"] == str(project_dir / "script.py")
-            assert data["input_files"][0]["path"] == str(project_dir / "data/input.txt")
-            assert data["input_files"][0]["archived_path"] == str(archive_dir / "data" / "hash1_input.txt")
+            assert data["input_files"][0]["path"] == (project_dir / "data/input.txt").as_posix()
+            assert data["input_files"][0]["archived_path"] == (archive_dir / "data" / "hash1_input.txt").as_posix()

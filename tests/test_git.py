@@ -2,8 +2,7 @@
 
 import subprocess
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import patch
 
 from rair.git import (
     get_commit_hash,
@@ -12,8 +11,7 @@ from rair.git import (
     get_diff,
     get_diff_hash,
     get_tracking_url,
-    get_status,
-    _call_git_command,
+    get_status
 )
 
 

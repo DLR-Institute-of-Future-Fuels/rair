@@ -1,9 +1,8 @@
 """Tests for models.py."""
-
-import pytest
 from pathlib import Path
 
-from rair.models import FileSnapshot, GitInfo, RunConfig, TrackedFile
+from rair.models import FileSnapshot, GitInfo, TrackedFile
+from rair.config import RairConfig
 
 
 class TestTrackedFile:
@@ -44,22 +43,22 @@ class TestTrackedFile:
 
 class TestRunConfig:
     def test_default_values(self):
-        config = RunConfig()
-        assert config.input_globs == []
-        assert config.output_globs == []
-        assert config.exclude_globs == []
+        config = RairConfig()
+        assert config.input_glob == []
+        assert config.output_glob == []
+        assert config.exclude_glob == []
         assert config.archive_dir == Path("rairarchive")
 
     def test_custom_values(self):
-        config = RunConfig(
-            input_globs=["data/*.csv"],
-            output_globs=["results/*.txt"],
-            exclude_globs=["*.tmp"],
+        config = RairConfig(
+            input_glob=["data/*.csv"],
+            output_glob=["results/*.txt"],
+            exclude_glob=["*.tmp"],
             archive_dir=Path("my_archive"),
         )
-        assert config.input_globs == ["data/*.csv"]
-        assert config.output_globs == ["results/*.txt"]
-        assert config.exclude_globs == ["*.tmp"]
+        assert config.input_glob == ["data/*.csv"]
+        assert config.output_glob == ["results/*.txt"]
+        assert config.exclude_glob == ["*.tmp"]
         assert config.archive_dir == Path("my_archive")
 
 

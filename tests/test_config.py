@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-import pytest
+from typing import Any
 
 from rair.config import (
     RairConfig,
@@ -72,7 +72,7 @@ class TestLoadTomlConfig:
 
 class TestParseRairConfig:
     def test_parse_tool_rair_section(self):
-        config_data = {
+        config_data: dict[str, Any] = {
             "tool": {
                 "rair": {
                     "archive_dir": "custom_archive",
