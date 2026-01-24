@@ -25,7 +25,7 @@ class TestRunScriptExecution:
                 capture_output=False,
             )
 
-            exit_code = run(script_path, [], config)
+            exit_code = run(script_path, tmpdir_path, [], config)
             assert exit_code == 0
 
     def test_run_python_script_with_args(self):
@@ -47,7 +47,7 @@ print('arg2:', sys.argv[2] if len(sys.argv) > 2 else 'none')
                 capture_output=False,
             )
 
-            exit_code = run(script_path, ["test_arg1", "test_arg2"], config)
+            exit_code = run(script_path, tmpdir_path, ["test_arg1", "test_arg2"], config)
             assert exit_code == 0
 
     def test_run_python_script_with_capture_output(self):
@@ -65,7 +65,7 @@ print('arg2:', sys.argv[2] if len(sys.argv) > 2 else 'none')
                 capture_output=True,
             )
 
-            exit_code = run(script_path, [], config)
+            exit_code = run(script_path, tmpdir_path, [], config)
             assert exit_code == 0
 
     def test_run_bash_script(self):
@@ -88,7 +88,7 @@ print('arg2:', sys.argv[2] if len(sys.argv) > 2 else 'none')
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config)
+                    exit_code = run(script_path, tmpdir_path, [], config)
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -116,7 +116,7 @@ print('arg2:', sys.argv[2] if len(sys.argv) > 2 else 'none')
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config)
+                    exit_code = run(script_path, tmpdir_path, [], config)
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -144,7 +144,7 @@ print('arg2:', sys.argv[2] if len(sys.argv) > 2 else 'none')
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config)
+                    exit_code = run(script_path, tmpdir_path, [], config)
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -172,7 +172,7 @@ print('arg2:', sys.argv[2] if len(sys.argv) > 2 else 'none')
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config)
+                    exit_code = run(script_path, tmpdir_path, [], config)
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -201,7 +201,7 @@ with open('output.txt', 'w') as f:
                 capture_output=False,
             )
 
-            exit_code = run(script_path, [], config)
+            exit_code = run(script_path, tmpdir_path, [], config)
             assert exit_code == 0
 
     def test_run_script_failure(self):
@@ -219,7 +219,7 @@ with open('output.txt', 'w') as f:
                 capture_output=False,
             )
 
-            exit_code = run(script_path, [], config)
+            exit_code = run(script_path, tmpdir_path, [], config)
             assert exit_code == 1
 
     def test_run_preserves_working_directory(self):
@@ -238,7 +238,7 @@ with open('output.txt', 'w') as f:
                 capture_output=False,
             )
 
-            run(script_path, [], config)
+            run(script_path, tmpdir_path, [], config)
             assert os.getcwd() == original_cwd
 
 
@@ -263,7 +263,7 @@ class TestRunWithCommandOverride:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config, command_override="python")
+                    exit_code = run(script_path, tmpdir_path, [], config, command_override="python")
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -291,7 +291,7 @@ class TestRunWithCommandOverride:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config, command_override="bash")
+                    exit_code = run(script_path, tmpdir_path, [], config, command_override="bash")
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -319,7 +319,7 @@ class TestRunWithCommandOverride:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, ["--all"], config, command_override="make")
+                    exit_code = run(script_path, tmpdir_path, ["--all"], config, command_override="make")
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -347,7 +347,7 @@ class TestRunWithCommandOverride:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, ["--arg1", "--arg2"], config, command_override="python")
+                    exit_code = run(script_path, tmpdir_path, ["--arg1", "--arg2"], config, command_override="python")
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -374,7 +374,7 @@ class TestRunWithCommandOverride:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    exit_code = run(script_path, [], config)
+                    exit_code = run(script_path, tmpdir_path, [], config)
 
                     assert mock_run.called
                     called_command = mock_run.call_args[0][0]
@@ -405,7 +405,7 @@ class TestAutoDiscoveryFeature:
 
             with patch("rair.git._call_git_command") as mock_git:
                 mock_git.return_value = ""
-                exit_code = run(script_path, [], config)
+                exit_code = run(script_path, tmpdir_path, [], config)
 
             assert exit_code == 0
 
@@ -430,7 +430,7 @@ class TestAutoDiscoveryFeature:
 
             with patch("rair.git._call_git_command") as mock_git:
                 mock_git.return_value = "tracked.py"
-                exit_code = run(script_path, [], config)
+                exit_code = run(script_path, tmpdir_path, [], config)
 
             assert exit_code == 0
 
@@ -455,7 +455,7 @@ class TestAutoDiscoveryFeature:
 
             with patch("rair.git._call_git_command") as mock_git:
                 mock_git.return_value = ""
-                exit_code = run(script_path, [], config)
+                exit_code = run(script_path, tmpdir_path, [], config)
 
             assert exit_code == 0
 
@@ -479,7 +479,7 @@ class TestAutoDiscoveryFeature:
 
             with patch("rair.git._call_git_command") as mock_git:
                 mock_git.return_value = ""
-                exit_code = run(script_path, [], config)
+                exit_code = run(script_path, tmpdir_path, [], config)
 
             assert exit_code == 0
 
@@ -501,6 +501,6 @@ class TestAutoDiscoveryFeature:
 
             with patch("rair.git._call_git_command") as mock_git:
                 mock_git.return_value = ""
-                exit_code = run(script_path, [], config)
+                exit_code = run(script_path, tmpdir_path, [], config)
 
             assert exit_code == 0

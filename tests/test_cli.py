@@ -75,7 +75,7 @@ class TestCLI:
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
-                assert call_args[0][1] == ["arg1", "arg2"]
+                assert call_args[0][2] == ["arg1", "arg2"]
             finally:
                 script_path.unlink()
 
@@ -146,7 +146,7 @@ class TestCLI:
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
-                assert call_args[0][3] == "python"
+                assert call_args[0][4] == "python"
             finally:
                 script_path.unlink()
 
@@ -167,8 +167,8 @@ class TestCLI:
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
-                assert call_args[0][1] == ["arg1", "arg2"]
-                assert call_args[0][3] == "python"
+                assert call_args[0][2] == ["arg1", "arg2"]
+                assert call_args[0][4] == "python"
             finally:
                 script_path.unlink()
 
@@ -189,16 +189,9 @@ class TestCLI:
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
-                assert call_args[0][3] == "bash"
+                assert call_args[0][4] == "bash"
             finally:
                 script_path.unlink()
-
-    def test_cli_explicit_command_without_script_fails(self):
-        runner = CliRunner()
-
-        result = runner.invoke(app, ["python"])
-        assert result.exit_code != 0
-        assert "No script specified" in result.output
 
     def test_cli_auto_detect_with_rair_options(self):
         runner = CliRunner()
@@ -224,7 +217,7 @@ class TestCLI:
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
-                assert call_args[0][1] == ["arg1"]
+                assert call_args[0][2] == ["arg1"]
             finally:
                 script_path.unlink()
 
@@ -253,7 +246,7 @@ class TestCLI:
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
-                assert call_args[0][1] == ["arg1"]
-                assert call_args[0][3] == "python"
+                assert call_args[0][2] == ["arg1"]
+                assert call_args[0][4] == "python"
             finally:
                 script_path.unlink()

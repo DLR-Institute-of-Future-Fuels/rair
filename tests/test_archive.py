@@ -166,7 +166,7 @@ class TestWriteRunInfo:
 
             write_run_info(
                 run_dir,
-                Path("script.py"),
+                ["script.py"],
                 project_dir,
                 archive_dir,
                 git_info,
@@ -174,6 +174,7 @@ class TestWriteRunInfo:
                 output_files,
                 archived_files,
                 combined_hash,
+                execution_time=0.0,
             )
 
             info_path = run_dir / "info.md"

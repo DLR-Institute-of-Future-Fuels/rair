@@ -95,7 +95,7 @@ class TestWriteRunJson:
 
             write_run_json(
                 run_dir,
-                Path("script.py"),
+                ["script.py"],
                 project_dir,
                 archive_dir,
                 git_info,
@@ -112,12 +112,12 @@ class TestWriteRunJson:
 
             assert "run_id" in data
             assert "run_timestamp" in data
-            assert "script" in data
+            assert "command" in data
             assert "git" in data
             assert "input_files" in data
             assert "output_files" in data
 
-            assert data["script"] == "script.py"
+            assert data["command"] == ["script.py"]
             assert data["git"]["commit_hash"] == "abc123def456"
             assert data["git"]["short_hash"] == "abc123d"
             assert data["git"]["has_diff"] is False
@@ -143,7 +143,7 @@ class TestWriteRunJson:
 
             write_run_json(
                 run_dir,
-                Path("script.py"),
+                ["script.py"],
                 project_dir,
                 archive_dir,
                 git_info,
@@ -188,7 +188,7 @@ class TestWriteRunJson:
 
             write_run_json(
                 run_dir,
-                Path("script.py"),
+                ["script.py"],
                 project_dir,
                 archive_dir,
                 git_info,
@@ -234,7 +234,7 @@ class TestWriteRunJson:
 
             write_run_json(
                 run_dir,
-                project_dir / "script.py",
+                ["script.py"],
                 project_dir,
                 archive_dir,
                 git_info,
@@ -246,6 +246,6 @@ class TestWriteRunJson:
             with open(run_dir / "run.json") as f:
                 data = json.load(f)
 
-            assert data["script"] == str(project_dir / "script.py")
+            assert data["command"] == ["script.py"]
             assert data["input_files"][0]["path"] == (project_dir / "data/input.txt").as_posix()
             assert data["input_files"][0]["archived_path"] == (archive_dir / "data" / "hash1_input.txt").as_posix()

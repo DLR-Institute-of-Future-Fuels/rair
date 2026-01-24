@@ -1,6 +1,5 @@
 """Tests for data versioning functionality to prevent regressions."""
 
-import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -34,7 +33,7 @@ class TestDataVersioningIntegration:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     assert archive_dir.exists()
                     assert (archive_dir / "runs").exists()
@@ -64,7 +63,7 @@ class TestDataVersioningIntegration:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify the file was archived by checking archive structure
                     # Archive should have been created
@@ -92,7 +91,7 @@ class TestDataVersioningIntegration:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify archive was created
                     assert archive_dir.exists()
@@ -120,7 +119,7 @@ class TestDataVersioningIntegration:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify metadata files were created
                     runs_dir = archive_dir / "runs"
@@ -160,9 +159,9 @@ class TestDataVersioningIntegration:
                     mock_run.return_value = MagicMock(returncode=0)
 
                     # Run multiple times with same input file
-                    run(script_path, [], config)
-                    run(script_path, [], config)
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify only one copy in data archive
                     data_dir = archive_dir / "data"
@@ -200,7 +199,7 @@ class TestDataVersioningIntegration:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify git functions were called
                     assert mock_git.call_count >= 3  # get_commit_hash, get_diff, etc.
@@ -228,9 +227,9 @@ class TestDataVersioningIntegration:
                     mock_run.return_value = MagicMock(returncode=0)
 
                     # Run multiple times
-                    run(script_path, [], config)
-                    run(script_path, [], config)
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify multiple run directories exist
                     runs_dir = archive_dir / "runs"
@@ -264,7 +263,7 @@ class TestDataVersioningIntegration:
                 with patch("rair.core.subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
 
-                    run(script_path, [], config)
+                    run(script_path, tmpdir_path, [], config)
 
                     # Verify data directory was created
                     data_dir = archive_dir / "data"
