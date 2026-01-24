@@ -16,6 +16,11 @@ from .tracking import (
     load_cache,
     save_cache,
 )
+from .auto_detect import (
+    get_auto_discover_candidates,
+    get_file_hash_map,
+    categorize_files_by_changes,
+)
 
 
 def should_use_auto_discovery_for_input(config: RairConfig) -> bool:
@@ -74,30 +79,19 @@ def run(
         cache_dir = base_dir / ".rair_cache"
         cache = load_cache(cache_dir)
 
-        from .auto_detect import (
-            get_auto_discover_candidates,
-            get_file_hash_map,
-            get_hidden_dirs,
-            should_exclude_file,
-            categorize_files_by_changes,
-        )
-
         tracked_files: list[Path] = []
-        hidden_dirs: set[Path] = set()
-        before_hashes: dict[Path, str] | None = None
+        before_hashes: dict[Path, str] = {}
+        exclude = config.exclude_glob + [(config.archive_dir / '**').as_posix()]
+        candidates: list[Path] = []
 
         if should_use_auto_discovery_for_input(config) or should_use_auto_discovery_for_output(config):
-            tracked_files = get_tracked_files(cwd=base_dir)
-            hidden_dirs = get_hidden_dirs(base_dir)
-
-        archive_dir_path = config.archive_dir if config.archive_dir.is_absolute() else base_dir / config.archive_dir
+            tracked_files = get_tracked_files(base_dir)
+            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude)
+            if should_use_auto_discovery_for_output(config):
+                before_hashes = get_file_hash_map(candidates)
 
         if should_use_auto_discovery_for_input(config):
-            candidates = get_auto_discover_candidates(base_dir, tracked_files)
-            input_files = [
-                f for f in candidates
-                if not should_exclude_file(f, base_dir, archive_dir_path, hidden_dirs, tracked_files)
-            ]
+            input_files = candidates
         else:
             input_files = collect_files(base_dir, config.input_glob, config.exclude_glob)
 
@@ -142,15 +136,13 @@ def run(
             return_code = result.returncode
 
         if should_use_auto_discovery_for_output(config):
-            candidates = get_auto_discover_candidates(base_dir, tracked_files)
-            output_files = [
-                f for f in candidates
-                if not should_exclude_file(f, base_dir, archive_dir_path, hidden_dirs, tracked_files)
-            ]
-            after_snapshot = create_snapshot(output_files, cache)
+            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude)
+            after_hashes = get_file_hash_map(candidates)
+            output_files = categorize_files_by_changes(before_hashes, after_hashes)
         else:
             output_files = collect_files(base_dir, config.output_glob, config.exclude_glob)
-            after_snapshot = create_snapshot(output_files, cache)
+        
+        after_snapshot = create_snapshot(output_files, cache)
 
         save_cache(cache_dir, cache)
 

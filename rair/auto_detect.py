@@ -2,24 +2,8 @@
 
 from pathlib import Path
 from typing import Optional, Generator
-
+from .hashing import compute_file_hash
 from .utils import is_hidden
-
-
-def compute_file_hash(file_path: Path) -> str:
-    """Compute SHA256 hash of a file.
-
-    Args:
-        file_path: Path to file
-
-    Returns:
-        Truncated 20-char hash, or empty string if file doesn't exist
-    """
-    if not file_path.exists():
-        return ""
-
-    from .hashing import compute_file_hash as _compute_file_hash
-    return _compute_file_hash(file_path)
 
 
 def get_file_hash_map(files: list[Path]) -> dict[Path, str]:
@@ -33,22 +17,9 @@ def get_file_hash_map(files: list[Path]) -> dict[Path, str]:
     """
     result: dict[Path, str] = {}
     for file_path in files:
-        hash_val = compute_file_hash(file_path)
-        if hash_val:
-            result[file_path] = hash_val
+        if file_path.exists():
+            result[file_path] = compute_file_hash(file_path)
     return result
-
-
-def get_hidden_dirs(base_dir: Path) -> set[Path]:
-    """Get all hidden directories (directories starting with '.').
-
-    Args:
-        base_dir: Base directory to search
-
-    Returns:
-        Set of hidden directory paths
-    """
-    return {p for p in base_dir.rglob("*") if p.is_dir() and is_hidden(p)}
 
 
 def is_hidden_file(file_path: Path) -> bool:
@@ -127,51 +98,10 @@ def get_auto_discover_candidates(
     return candidates
 
 
-def should_exclude_file(
-    file_path: Path,
-    base_dir: Path,
-    archive_dir: Path,
-    hidden_dirs: set[Path],
-    tracked_files: Optional[list[Path]] = None,
-) -> bool:
-    """Check if file should be excluded from auto-discovery.
-
-    Args:
-        file_path: File path to check
-        base_dir: Base directory
-        archive_dir: Archive directory path
-        hidden_dirs: Set of hidden directory paths
-        tracked_files: Optional list of git-tracked files
-
-    Returns:
-        True if file should be excluded
-    """
-    if is_hidden_file(file_path):
-        return True
-
-    if is_in_hidden_directory(file_path, base_dir):
-        return True
-
-    try:
-        if file_path.is_relative_to(archive_dir):
-            return True
-    except ValueError:
-        pass
-
-    if tracked_files is not None:
-        try:
-            if file_path in tracked_files:
-                return True
-        except ValueError:
-            pass
-
-    return False
-
-
 def categorize_files_by_changes(
     before_hashes: dict[Path, str],
     after_hashes: dict[Path, str],
-) -> tuple[list[Path], list[Path]]:
+) -> list[Path]:
     """Categorize files as input/output based on hash changes.
 
     Args:
@@ -179,10 +109,7 @@ def categorize_files_by_changes(
         after_hashes: File hashes after execution
 
     Returns:
-        (input_files, output_files)
-        - input: Files with same hash in both (unchanged)
-        - output: Files with different hash OR created during execution
-        - deleted: Ignored
+        Files with different hash OR created during execution
     """
     input_files: list[Path] = []
     output_files: list[Path] = []
@@ -198,4 +125,4 @@ def categorize_files_by_changes(
         if file_path not in before_hashes:
             output_files.append(file_path)
 
-    return input_files, output_files
+    return output_files
