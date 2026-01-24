@@ -57,7 +57,8 @@ def create_git_info(status: dict[str, str]) -> GitInfo:
 
 
 def run(
-    script: Path,
+    script: Path | None,
+    base_dir: Path,
     args: list[str],
     config: RairConfig,
     command_override: Optional[str] = None,
@@ -70,7 +71,6 @@ def run(
         config: Configuration for data versioning
         command_override: Optional command to use instead of auto-detection
     """
-    base_dir = script.resolve().parent
     original_cwd = os.getcwd()
 
     try:
@@ -108,8 +108,12 @@ def run(
         )
 
         if command_override:
-            command_args = [command_override, str(script)]
+            if isinstance(script, Path):
+                command_args = [command_override, str(script)]
+            else:
+                command_args = [command_override]
         else:
+            assert script, 'A script or executable needs to be specified'
             detected_type = detect_script_type(script)
             command_args = get_command_args(script, detected_type)
         full_command = command_args + args
@@ -157,7 +161,7 @@ def run(
         run_id = generate_run_id(cache_dir, short_hash)
         create_run_info(
             run_id=run_id,
-            script=script,
+            command=full_command,
             project_dir=base_dir,
             archive_dir=archive_path,
             git_info=git_info,

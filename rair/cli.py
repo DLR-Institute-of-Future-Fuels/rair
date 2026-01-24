@@ -9,6 +9,7 @@ from typer import Argument, Option
 from .config import load_config, merge_config_with_cli, RairConfig
 from .core import run
 from .cli_parser import is_script_extension
+from .git import get_toplevel
 
 app = typer.Typer(
     add_completion=False,
@@ -82,11 +83,12 @@ def main(
     else:
         command = script_or_command
         if not args:
-            raise typer.BadParameter(f"No script specified after command \'{command}\'")
-        script = Path(args[0])
+            script = None
+        else:
+            script = Path(args[0])
         script_args = args[1:]
 
-    project_dir = script.parent
+    project_dir = get_toplevel(script.parent) if script else get_toplevel()
 
     file_config = load_config(project_dir, config.name if config else None)
 
@@ -108,7 +110,7 @@ def main(
         capture_output=capture_output,
     )
 
-    exit_code = run(script, script_args, run_config, command)
+    exit_code = run(script, project_dir, script_args, run_config, command)
 
     raise typer.Exit(code=exit_code)
 

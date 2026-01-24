@@ -2,7 +2,7 @@
 
 from typing import Tuple
 
-SCRIPT_EXTENSIONS = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe"}
+SCRIPT_EXTENSIONS = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe", ".ps1"}
 
 RAIR_OPTIONS = {
     "--config",

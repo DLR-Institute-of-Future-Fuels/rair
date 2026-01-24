@@ -140,7 +140,7 @@ class TestSeparateArgs:
 
 class TestScriptExtensions:
     def test_script_extensions_set(self):
-        expected = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe"}
+        expected = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe", ".ps1"}
         assert SCRIPT_EXTENSIONS == expected
 
 

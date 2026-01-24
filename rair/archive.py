@@ -158,7 +158,7 @@ def _format_file_for_display(
 
 def write_run_info(
     run_dir: Path,
-    script: Path,
+    command: list[str],
     project_dir: Path,
     archive_dir: Path,
     git_info: GitInfo,
@@ -176,12 +176,12 @@ def write_run_info(
         with open(diff_path, "w") as f:
             f.write(git_info.diff)
 
-    display_script = _make_relative_path(project_dir, archive_dir, script)
+    display_script = ' '.join(command)
 
     with open(run_dir / "info.md", "w") as f:
         f.write("# Run Information\n\n")
         f.write(f"- Run time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"- Script: `{display_script}`\n\n")
+        f.write(f"- Command: `{display_script}`\n\n")
 
         f.write("## Git Information\n\n")
         if gitlab_link:
@@ -250,7 +250,7 @@ def _format_file_for_json(
 
 def write_run_json(
     run_dir: Path,
-    script: Path,
+    command: list [str],
     project_dir: Path,
     archive_dir: Path,
     git_info: GitInfo,
@@ -264,7 +264,7 @@ def write_run_json(
     run_data: dict[str, Any] = {
         "run_id": run_dir.name,
         "run_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "script": str(_make_relative_path(project_dir, archive_dir, script)),
+        "command": command,
         "git": {
             "commit_hash": git_info.commit_hash,
             "short_hash": git_info.short_hash,
@@ -312,7 +312,7 @@ def archive_files(
 
 def create_run_info(
     run_id: str,
-    script: Path,
+    command: list[str],
     project_dir: Path,
     archive_dir: Path,
     git_info: GitInfo,
@@ -330,7 +330,7 @@ def create_run_info(
 
     write_run_info(
         run_dir,
-        script,
+        command,
         project_dir,
         archive_dir,
         git_info,
@@ -347,7 +347,7 @@ def create_run_info(
 
     write_run_json(
         run_dir,
-        script,
+        command,
         project_dir,
         archive_dir,
         git_info,

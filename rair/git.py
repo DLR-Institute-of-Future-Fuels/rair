@@ -20,14 +20,12 @@ def _call_git_command(
     )
     return result.stdout.strip()
 
-
 def get_commit_hash(cwd: Optional[Path] = None) -> str:
     """Return the full git commit hash of the current HEAD."""
     try:
         return _call_git_command(["rev-parse", "HEAD"], cwd=cwd)
     except subprocess.CalledProcessError:
         return "no-commit"
-
 
 def get_short_hash(cwd: Optional[Path] = None) -> str:
     """Return the short git commit hash of the current HEAD."""
@@ -36,14 +34,12 @@ def get_short_hash(cwd: Optional[Path] = None) -> str:
     except subprocess.CalledProcessError:
         return "no-commit"
 
-
 def get_branch(cwd: Optional[Path] = None) -> str:
     """Return the current branch name."""
     try:
         return _call_git_command(["rev-parse", "--abbrev-ref", "HEAD"], cwd=cwd)
     except subprocess.CalledProcessError:
         return "unknown"
-
 
 def get_diff(cwd: Optional[Path] = None) -> str:
     """Return the uncommitted changes in the working directory."""
@@ -52,13 +48,11 @@ def get_diff(cwd: Optional[Path] = None) -> str:
     except subprocess.CalledProcessError:
         return ""
 
-
 def get_diff_hash(diff: str) -> str:
     """Return a short hash of the git diff."""
     if not diff:
         return ""
     return hashlib.sha256(diff.encode("utf-8")).hexdigest()[:20]  # truncated to 160 bit
-
 
 def get_tracking_url(cwd: Optional[Path] = None) -> str:
     """Return the URL of the remote tracking branch."""
@@ -71,6 +65,22 @@ def get_tracking_url(cwd: Optional[Path] = None) -> str:
     except subprocess.CalledProcessError:
         return "no-upstream"
 
+def get_toplevel(cwd: Optional[Path] = None) -> Path:
+    """Return the top-level directory of the git repository.
+
+    If no git repository is present, return the current directory.
+    Args:
+        cwd: Directory to search (defaults to current)
+
+    Returns:
+        Path object pointing to the top-level directory of the git repo
+    """
+    try:
+        toplevel = _call_git_command(["rev-parse", "--show-toplevel"], cwd=cwd)
+        return Path(toplevel)
+    except subprocess.CalledProcessError:
+        # If git isn't found or not in a repo, return current directory
+        return cwd if cwd else Path(".")
 
 def get_status(cwd: Optional[Path] = None) -> dict[str, str]:
     """Get all git information for a run."""
@@ -80,7 +90,6 @@ def get_status(cwd: Optional[Path] = None) -> dict[str, str]:
     diff = get_diff(cwd)
     diff_hash = get_diff_hash(diff)
     tracking_url = get_tracking_url(cwd)
-
     return {
         "commit_hash": commit_hash,
         "short_hash": short_hash,
@@ -89,7 +98,6 @@ def get_status(cwd: Optional[Path] = None) -> dict[str, str]:
         "diff_hash": diff_hash,
         "tracking_url": tracking_url,
     }
-
 
 def get_tracked_files(cwd: Optional[Path] = None) -> list[Path]:
     """Return list of git-tracked files in directory.
