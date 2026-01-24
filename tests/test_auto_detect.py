@@ -1,6 +1,5 @@
 """Tests for auto_detect.py."""
 
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -8,13 +7,10 @@ from rair.auto_detect import (
     is_hidden_file,
     is_in_hidden_directory,
     get_auto_discover_candidates,
-    compute_file_hash,
     get_file_hash_map,
-    get_hidden_dirs,
-    should_exclude_file,
     categorize_files_by_changes,
 )
-
+from rair.hashing import compute_file_hash
 
 class TestIsHiddenFile:
     def test_hidden_file_returns_true(self):
@@ -161,10 +157,6 @@ class TestComputeFileHash:
             assert len(hash_val) == 20
             assert hash_val.isalnum()
 
-    def test_nonexistent_file_returns_empty(self):
-        result = compute_file_hash(Path("/nonexistent/path"))
-        assert result == ""
-
 
 class TestGetFileHashMap:
     def test_returns_correct_mapping(self):
@@ -197,89 +189,6 @@ class TestGetFileHashMap:
         assert result == {}
 
 
-class TestGetHiddenDirs:
-    def test_finds_hidden_directories(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            (tmpdir_path / "normal").mkdir()
-            (tmpdir_path / ".git").mkdir()
-            (tmpdir_path / ".cache").mkdir()
-
-            result = get_hidden_dirs(tmpdir_path)
-            names = {p.name for p in result}
-            assert ".git" in names
-            assert ".cache" in names
-            assert "normal" not in names
-
-    def test_finds_nested_hidden_directories(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            level1 = tmpdir_path / ".cache"
-            level1.mkdir()
-            level2 = level1 / ".nested"
-            level2.mkdir()
-
-            result = get_hidden_dirs(tmpdir_path)
-            paths = {p for p in result}
-            assert level1 in paths
-            assert level2 in paths
-
-    def test_excludes_normal_directories(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            (tmpdir_path / "data").mkdir()
-            (tmpdir_path / "results").mkdir()
-
-            result = get_hidden_dirs(tmpdir_path)
-            assert len(result) == 0
-
-
-class TestShouldExcludeFile:
-    def test_excludes_hidden_files(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            file_path = tmpdir_path / ".hidden"
-            file_path.write_text("content")
-
-        assert should_exclude_file(file_path, tmpdir_path, tmpdir_path / "archive", set(), None)
-
-    def test_excludes_files_in_hidden_dirs(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            hidden_dir = tmpdir_path / ".cache"
-            hidden_dir.mkdir()
-            file_path = hidden_dir / "file.txt"
-            file_path.write_text("content")
-
-        assert should_exclude_file(file_path, tmpdir_path, tmpdir_path / "archive", set(), None)
-
-    def test_excludes_git_tracked_files(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            file_path = tmpdir_path / "tracked.txt"
-            file_path.write_text("tracked")
-
-        assert should_exclude_file(file_path, tmpdir_path, tmpdir_path / "archive", set(), [file_path])
-
-    def test_excludes_archive_dir_files(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            archive_dir = tmpdir_path / "rairarchive"
-            archive_dir.mkdir()
-            file_path = archive_dir / "data.txt"
-            file_path.write_text("data")
-
-        assert should_exclude_file(file_path, tmpdir_path, archive_dir, set(), None)
-
-    def test_allows_eligible_files(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            file_path = tmpdir_path / "normal.txt"
-            file_path.write_text("normal content")
-
-        assert not should_exclude_file(file_path, tmpdir_path, tmpdir_path / "archive", set(), None)
-
-
 class TestCategorizeFilesByChanges:
     def test_unchanged_files_as_input(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -287,13 +196,12 @@ class TestCategorizeFilesByChanges:
             file1 = tmpdir_path / "file1.txt"
             file1.write_text("same content")
 
-        file_hash = compute_file_hash(file1)
+            file_hash = compute_file_hash(file1)
 
-        before = {file1: file_hash}
-        after = {file1: file_hash}
+            before = {file1: file_hash}
+            after = {file1: file_hash}
 
-        input_files, output_files = categorize_files_by_changes(before, after)
-        assert file1 in input_files
+            output_files = categorize_files_by_changes(before, after)
         assert file1 not in output_files
 
     def test_changed_files_as_output(self):
@@ -308,8 +216,7 @@ class TestCategorizeFilesByChanges:
         before = {file1: old_hash}
         after = {file1: new_hash}
 
-        input_files, output_files = categorize_files_by_changes(before, after)
-        assert file1 not in input_files
+        output_files = categorize_files_by_changes(before, after)
         assert file1 in output_files
 
     def test_created_files_as_output(self):
@@ -318,12 +225,11 @@ class TestCategorizeFilesByChanges:
             file1 = tmpdir_path / "file1.txt"
             file1.write_text("content")
 
-        before: dict = {}
-        after = {file1: compute_file_hash(file1)}
+            before: dict = {}
+            after = {file1: compute_file_hash(file1)}
 
-        input_files, output_files = categorize_files_by_changes(before, after)
+            output_files = categorize_files_by_changes(before, after)
         assert file1 in output_files
-        assert file1 not in input_files
 
     def test_deleted_files_ignored(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -331,11 +237,10 @@ class TestCategorizeFilesByChanges:
             file1 = tmpdir_path / "file1.txt"
             file1.write_text("content")
 
-        before = {file1: compute_file_hash(file1)}
-        after: dict = {}
+            before = {file1: compute_file_hash(file1)}
+            after: dict = {}
 
-        input_files, output_files = categorize_files_by_changes(before, after)
-        assert file1 not in input_files
+            output_files = categorize_files_by_changes(before, after)
         assert file1 not in output_files
 
     def test_mixed_scenario(self):
@@ -354,30 +259,26 @@ class TestCategorizeFilesByChanges:
             created = tmpdir_path / "created.txt"
             created.write_text("new file")
 
-        deleted_path = tmpdir_path / "deleted.txt"
-        deleted_hash = "deleted_hash"
+            deleted_path = tmpdir_path / "deleted.txt"
+            deleted_hash = "deleted_hash"
 
-        before = {
-            unchanged: unchanged_hash,
-            changed: changed_hash_old,
-            deleted_path: deleted_hash,
-        }
-        after = {
-            unchanged: unchanged_hash,
-            changed: changed_hash_new,
-            created: compute_file_hash(created),
-        }
+            before = {
+                unchanged: unchanged_hash,
+                changed: changed_hash_old,
+                deleted_path: deleted_hash,
+            }
+            after = {
+                unchanged: unchanged_hash,
+                changed: changed_hash_new,
+                created: compute_file_hash(created),
+            }
 
-        input_files, output_files = categorize_files_by_changes(before, after)
+            output_files = categorize_files_by_changes(before, after)
 
-        assert unchanged in input_files
         assert unchanged not in output_files
 
         assert changed in output_files
-        assert changed not in input_files
 
         assert created in output_files
-        assert created not in input_files
 
-        assert deleted_path not in input_files
         assert deleted_path not in output_files

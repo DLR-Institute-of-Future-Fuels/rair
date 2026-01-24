@@ -81,12 +81,12 @@ def run(
 
         tracked_files: list[Path] = []
         before_hashes: dict[Path, str] = {}
-        exclude = config.exclude_glob + [(config.archive_dir / '**').as_posix()]
+        exclude = config.exclude_glob
         candidates: list[Path] = []
 
         if should_use_auto_discovery_for_input(config) or should_use_auto_discovery_for_output(config):
             tracked_files = get_tracked_files(base_dir)
-            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude)
+            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, config.archive_dir.absolute())
             if should_use_auto_discovery_for_output(config):
                 before_hashes = get_file_hash_map(candidates)
 
@@ -136,7 +136,7 @@ def run(
             return_code = result.returncode
 
         if should_use_auto_discovery_for_output(config):
-            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude)
+            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, config.archive_dir.absolute())
             after_hashes = get_file_hash_map(candidates)
             output_files = categorize_files_by_changes(before_hashes, after_hashes)
         else:

@@ -1,7 +1,6 @@
 """File tracking and caching for rair."""
 
 from pathlib import Path
-from typing import Optional
 from .hashing import compute_file_hash
 from .models import FileSnapshot, TrackedFile
 from .utils import safe_load_json, safe_write_json, ensure_directory
@@ -54,13 +53,13 @@ def create_snapshot(files: list[Path], cache: dict[str, tuple[str, float]]) -> F
         path_str = str(file_path)
         current_mtime = get_mtime(file_path)
 
-        cached_hash: Optional[str] = None
-        cached_mtime: Optional[float] = None
+        cached_hash = ''
+        cached_mtime = 0.0
 
         if path_str in cache:
             cached_hash, cached_mtime = cache[path_str]
 
-        if cached_hash is not None and cached_mtime == current_mtime:
+        if cached_hash and abs(cached_mtime - current_mtime) < 0.01:
             hash_val = cached_hash
         else:
             hash_val = compute_file_hash(file_path)

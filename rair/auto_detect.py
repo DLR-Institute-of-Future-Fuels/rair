@@ -1,24 +1,53 @@
 """Auto-discovery of input and output files for rair."""
 
 from pathlib import Path
-from typing import Optional, Generator
+from typing import Optional, Generator, Dict, Tuple
 from .hashing import compute_file_hash
 from .utils import is_hidden
 
 
-def get_file_hash_map(files: list[Path]) -> dict[Path, str]:
-    """Get hash map for multiple files.
+def get_file_hash_map(
+    files: list[Path], 
+    cache: Optional[Dict[str, Tuple[str, float]]] = None
+) -> dict[Path, str]:
+    """Get hash map for multiple files, using cached hashes when possible.
 
     Args:
         files: List of file paths
+        cache: Optional cache dictionary mapping file paths to (hash, mtime) tuples
 
     Returns:
         Mapping of file_path → hash (excludes non-existent files)
     """
+    if cache is None:
+        cache = {}
+        
     result: dict[Path, str] = {}
+    
+    # Helper function to get mtime
+    def get_mtime(path: Path) -> float:
+        return path.stat().st_mtime
+    
     for file_path in files:
         if file_path.exists():
-            result[file_path] = compute_file_hash(file_path)
+            path_str = str(file_path)
+            current_mtime = get_mtime(file_path)
+            
+            # Check if we have a cached hash
+            cached_hash = ''
+            cached_mtime = 0.0
+            
+            if path_str in cache:
+                cached_hash, cached_mtime = cache[path_str]
+            
+            # Use cached hash if mtime hasn't changed
+            if cached_hash and abs(cached_mtime - current_mtime) < 0.01:
+                hash_val = cached_hash
+            else:
+                hash_val = compute_file_hash(file_path)
+                cache[path_str] = (hash_val, current_mtime)
+                
+            result[file_path] = hash_val
     return result
 
 
@@ -57,6 +86,7 @@ def is_in_hidden_directory(file_path: Path, base_dir: Path) -> bool:
 def get_auto_discover_candidates(
     base_dir: Path,
     exclude: Optional[list[Path | str]] = None,
+    archive_dir: Path = Path()
 ) -> list[Path]:
     """Get files that should be auto-discovered (not hidden, not git-tracked).
 
@@ -72,7 +102,8 @@ def get_auto_discover_candidates(
             if isinstance(f, Path):
                 yield f
             else:
-                for gf in base_dir.rglob(f):
+                for gf in base_dir.glob(f):
+                    print('..', gf)
                     yield gf
 
     if exclude is None:
@@ -88,6 +119,9 @@ def get_auto_discover_candidates(
                 continue
 
             if is_in_hidden_directory(item, base_dir):
+                continue
+
+            if archive_dir in item.parents:
                 continue
 
             if item in excluded_files:
