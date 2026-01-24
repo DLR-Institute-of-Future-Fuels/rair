@@ -92,6 +92,10 @@ def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
             val = rair_config["exclude_glob"]
             config.exclude_glob = val if isinstance(val, list) else [val]
 
+        if "exclude" in rair_config:
+            val = rair_config["exclude"]
+            config.exclude_glob = val if isinstance(val, list) else [val]
+
         if "capture_output" in rair_config:
             config.capture_output = bool(rair_config["capture_output"])
 
@@ -104,13 +108,22 @@ def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
         if "input_glob" in rair_config:
             val = rair_config["input_glob"]
             config.input_glob = val if isinstance(val, list) else [val]
+        if "input" in rair_config:
+            val = rair_config["input"]
+            config.input_glob = val if isinstance(val, list) else [val]
 
         if "output_glob" in rair_config:
             val = rair_config["output_glob"]
             config.output_glob = val if isinstance(val, list) else [val]
+        if "output" in rair_config:
+            val = rair_config["output"]
+            config.output_glob = val if isinstance(val, list) else [val]
 
         if "exclude_glob" in rair_config:
             val = rair_config["exclude_glob"]
+            config.exclude_glob = val if isinstance(val, list) else [val]
+        if "exclude" in rair_config:
+            val = rair_config["exclude"]
             config.exclude_glob = val if isinstance(val, list) else [val]
 
         if "capture_output" in rair_config:

@@ -38,11 +38,11 @@ def main(
         dir_okay=False,
         resolve_path=True,
     ),
-    input_glob: Optional[list[str]] = Option(
+    input: Optional[list[str]] = Option(
         default=None,
         help="Glob pattern for input files to track",
     ),
-    output_glob: Optional[list[str]] = Option(
+    output: Optional[list[str]] = Option(
         default=None,
         help="Glob pattern for output files to track",
     ),
@@ -70,8 +70,8 @@ def main(
 
     merged_config = merge_config_with_cli(
         file_config,
-        input_glob,
-        output_glob,
+        input,
+        output,
         exclude,
         archive_dir,
     )
