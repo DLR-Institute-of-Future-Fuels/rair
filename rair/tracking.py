@@ -1,10 +1,10 @@
 """File tracking and caching for rair."""
 
-import json
 from pathlib import Path
 from typing import Optional
 from .hashing import compute_file_hash
 from .models import FileSnapshot, TrackedFile
+from .utils import safe_load_json, safe_write_json, ensure_directory
 
 
 def get_mtime(path: Path) -> float:
@@ -78,19 +78,12 @@ def create_snapshot(files: list[Path], cache: dict[str, tuple[str, float]]) -> F
 def load_cache(cache_dir: Path) -> dict[str, tuple[str, float]]:
     """Load the file hash cache from disk."""
     cache_file = cache_dir / "file_cache.json"
-    if cache_file.exists():
-        try:
-            with open(cache_file, "r") as f:
-                data = json.load(f)
-                return {k: tuple(v) for k, v in data.items()}
-        except (json.JSONDecodeError, OSError):
-            pass
-    return {}
+    data = safe_load_json(cache_file, {})
+    return {k: tuple(v) for k, v in data.items()}
 
 
 def save_cache(cache_dir: Path, cache: dict[str, tuple[str, float]]) -> None:
     """Save the file hash cache to disk."""
     cache_file = cache_dir / "file_cache.json"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    with open(cache_file, "w") as f:
-        json.dump({k: list(v) for k, v in cache.items()}, f)
+    ensure_directory(cache_dir)
+    safe_write_json(cache_file, {k: list(v) for k, v in cache.items()})

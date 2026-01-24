@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import Optional, Set
 
+from .utils import is_hidden
+
 
 def compute_file_hash(file_path: Path) -> str:
     """Compute SHA256 hash of a file.
@@ -46,7 +48,7 @@ def get_hidden_dirs(base_dir: Path) -> set[Path]:
     Returns:
         Set of hidden directory paths
     """
-    return {p for p in base_dir.rglob("*") if p.is_dir() and p.name.startswith(".")}
+    return {p for p in base_dir.rglob("*") if p.is_dir() and is_hidden(p)}
 
 
 def is_hidden_file(file_path: Path) -> bool:
@@ -58,7 +60,7 @@ def is_hidden_file(file_path: Path) -> bool:
     Returns:
         True if file name starts with '.'
     """
-    return file_path.name.startswith('.')
+    return is_hidden(file_path)
 
 
 def is_in_hidden_directory(file_path: Path, base_dir: Path) -> bool:
@@ -74,7 +76,7 @@ def is_in_hidden_directory(file_path: Path, base_dir: Path) -> bool:
     try:
         relative_path = file_path.relative_to(base_dir)
         for part in relative_path.parts:
-            if part.startswith('.'):
+            if is_hidden(part):
                 return True
         return False
     except ValueError:

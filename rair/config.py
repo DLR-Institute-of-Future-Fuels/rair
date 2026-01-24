@@ -64,6 +64,31 @@ def load_toml_config(config_path: Path) -> dict[str, Any]:
         return tomllib.load(f)
 
 
+def _normalize_glob_value(val: Any) -> list[str]:
+    """Normalize glob fields that accept string or list."""
+    return [v for v in val if isinstance(v, str)] if isinstance(val, list) else [str(val)]
+
+
+def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_map: dict[str, str]) -> None:
+    """Parse rair config section and update config object.
+
+    Args:
+        rair_config: Raw config dictionary from TOML
+        config: RairConfig instance to update
+        field_map: Mapping of TOML field names to config field names
+    """
+    for toml_field, config_field in field_map.items():
+        if toml_field in rair_config:
+            val = rair_config[toml_field]
+            if config_field in ["input_glob", "output_glob", "exclude_glob"]:
+                val = _normalize_glob_value(val)
+            elif config_field in ["archive_dir", "autodata_dir"]:
+                val = Path(val)
+            elif config_field == "capture_output":
+                val = bool(val)
+            setattr(config, config_field, val)
+
+
 def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
     """Parse rair configuration from loaded TOML data.
 
@@ -74,67 +99,23 @@ def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
         RairConfig instance
     """
     config = RairConfig()
+    
+    field_map = {
+        "archive_dir": "archive_dir",
+        "input_glob": "input_glob",
+        "input": "input_glob",
+        "output_glob": "output_glob",
+        "output": "output_glob",
+        "exclude_glob": "exclude_glob",
+        "exclude": "exclude_glob",
+        "capture_output": "capture_output",
+        "autodata_dir": "autodata_dir",
+    }
 
     if "tool" in config_data and "rair" in config_data["tool"]:
-        rair_config = config_data["tool"]["rair"]
-
-        if "archive_dir" in rair_config:
-            config.archive_dir = Path(rair_config["archive_dir"])
-
-        if "input_glob" in rair_config:
-            val = rair_config["input_glob"]
-            config.input_glob = val if isinstance(val, list) else [val]
-
-        if "output_glob" in rair_config:
-            val = rair_config["output_glob"]
-            config.output_glob = val if isinstance(val, list) else [val]
-
-        if "exclude_glob" in rair_config:
-            val = rair_config["exclude_glob"]
-            config.exclude_glob = val if isinstance(val, list) else [val]
-
-        if "exclude" in rair_config:
-            val = rair_config["exclude"]
-            config.exclude_glob = val if isinstance(val, list) else [val]
-
-        if "capture_output" in rair_config:
-            config.capture_output = bool(rair_config["capture_output"])
-
-        if "autodata_dir" in rair_config:
-            config.autodata_dir = Path(rair_config["autodata_dir"])
-
+        _parse_rair_section(config_data["tool"]["rair"], config, field_map)
     elif "rair" in config_data:
-        rair_config = config_data["rair"]
-
-        if "archive_dir" in rair_config:
-            config.archive_dir = Path(rair_config["archive_dir"])
-
-        if "input_glob" in rair_config:
-            val = rair_config["input_glob"]
-            config.input_glob = val if isinstance(val, list) else [val]
-        if "input" in rair_config:
-            val = rair_config["input"]
-            config.input_glob = val if isinstance(val, list) else [val]
-
-        if "output_glob" in rair_config:
-            val = rair_config["output_glob"]
-            config.output_glob = val if isinstance(val, list) else [val]
-        if "output" in rair_config:
-            val = rair_config["output"]
-            config.output_glob = val if isinstance(val, list) else [val]
-
-        if "exclude_glob" in rair_config:
-            val = rair_config["exclude_glob"]
-            config.exclude_glob = val if isinstance(val, list) else [val]
-        if "exclude" in rair_config:
-            val = rair_config["exclude"]
-            config.exclude_glob = val if isinstance(val, list) else [val]
-
-        if "capture_output" in rair_config:
-            config.capture_output = bool(rair_config["capture_output"])
-
-        if "autodata_dir" in rair_config:
-            config.autodata_dir = Path(rair_config["autodata_dir"])
+        _parse_rair_section(config_data["rair"], config, field_map)
 
     return config
 
