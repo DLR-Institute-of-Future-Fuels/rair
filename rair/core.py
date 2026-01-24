@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from .archive import create_run_info, generate_run_id
-from .git import get_status
+from .git import get_status, get_tracked_files
 from .models import GitInfo
 from .config import RairConfig
 from .script_type import get_command_args, detect_script_type
@@ -16,6 +16,16 @@ from .tracking import (
     load_cache,
     save_cache,
 )
+
+
+def should_use_auto_discovery_for_input(config: RairConfig) -> bool:
+    """Check if auto-discovery should be used for input files."""
+    return not config.input_glob and config.autodata_dir is not None
+
+
+def should_use_auto_discovery_for_output(config: RairConfig) -> bool:
+    """Check if auto-discovery should be used for output files."""
+    return not config.output_glob and config.autodata_dir is not None
 
 
 def collect_files(
@@ -64,7 +74,33 @@ def run(
         cache_dir = base_dir / ".rair_cache"
         cache = load_cache(cache_dir)
 
-        input_files = collect_files(base_dir, config.input_glob, config.exclude_glob)
+        from .auto_detect import (
+            get_auto_discover_candidates,
+            get_file_hash_map,
+            get_hidden_dirs,
+            should_exclude_file,
+            categorize_files_by_changes,
+        )
+
+        tracked_files: list[Path] = []
+        hidden_dirs: set[Path] = set()
+        before_hashes: dict[Path, str] | None = None
+
+        if should_use_auto_discovery_for_input(config) or should_use_auto_discovery_for_output(config):
+            tracked_files = get_tracked_files(cwd=base_dir)
+            hidden_dirs = get_hidden_dirs(base_dir)
+
+        archive_dir_path = config.archive_dir if config.archive_dir.is_absolute() else base_dir / config.archive_dir
+
+        if should_use_auto_discovery_for_input(config):
+            candidates = get_auto_discover_candidates(base_dir, tracked_files)
+            input_files = [
+                f for f in candidates
+                if not should_exclude_file(f, base_dir, archive_dir_path, hidden_dirs, tracked_files)
+            ]
+        else:
+            input_files = collect_files(base_dir, config.input_glob, config.exclude_glob)
+
         before_snapshot = create_snapshot(input_files, cache)
 
         git_status = get_status(cwd=base_dir)
@@ -105,8 +141,16 @@ def run(
             )
             return_code = result.returncode
 
-        output_files = collect_files(base_dir, config.output_glob, config.exclude_glob)
-        after_snapshot = create_snapshot(output_files, cache)
+        if should_use_auto_discovery_for_output(config):
+            candidates = get_auto_discover_candidates(base_dir, tracked_files)
+            output_files = [
+                f for f in candidates
+                if not should_exclude_file(f, base_dir, archive_dir_path, hidden_dirs, tracked_files)
+            ]
+            after_snapshot = create_snapshot(output_files, cache)
+        else:
+            output_files = collect_files(base_dir, config.output_glob, config.exclude_glob)
+            after_snapshot = create_snapshot(output_files, cache)
 
         save_cache(cache_dir, cache)
 

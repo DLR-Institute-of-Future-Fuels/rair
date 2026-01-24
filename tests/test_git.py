@@ -11,7 +11,8 @@ from rair.git import (
     get_diff,
     get_diff_hash,
     get_tracking_url,
-    get_status
+    get_status,
+    get_tracked_files,
 )
 
 
@@ -165,3 +166,36 @@ class TestGetStatus:
 
         assert result["commit_hash"] == "abc123def"
         mock_hash.assert_called_once_with(Path("/some/path"))
+
+
+class TestGetTrackedFiles:
+    def test_success_returns_tracked_files(self):
+        with patch("rair.git._call_git_command") as mock:
+            mock.return_value = "file1.txt\nfile2.txt\nfile3.txt"
+            result = get_tracked_files()
+
+        assert len(result) == 3
+        assert Path("file1.txt") in result
+        assert Path("file2.txt") in result
+        assert Path("file3.txt") in result
+
+    def test_error_returns_empty(self):
+        with patch("rair.git._call_git_command") as mock:
+            mock.side_effect = subprocess.CalledProcessError(1, "git")
+            result = get_tracked_files()
+
+        assert result == []
+
+    def test_empty_output_returns_empty(self):
+        with patch("rair.git._call_git_command") as mock:
+            mock.return_value = ""
+            result = get_tracked_files()
+
+        assert result == []
+
+    def test_with_cwd(self):
+        with patch("rair.git._call_git_command") as mock:
+            mock.return_value = "file1.txt\nfile2.txt"
+            result = get_tracked_files(cwd=Path("/some/path"))
+
+        mock.assert_called_once_with(["ls-files", "--full-name", "--cached"], cwd=Path("/some/path"))

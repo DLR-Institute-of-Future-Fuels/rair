@@ -217,3 +217,70 @@ class TestMergeConfigWithCli:
 
         assert result.archive_dir == Path("config_archive")
         assert result.input_glob == ["config_input/*.csv"]
+
+    def test_parse_autodata_from_tool_rair_section(self):
+        config_data: dict[str, Any] = {
+            "tool": {
+                "rair": {
+                    "autodata_dir": "data/",
+                }
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.autodata_dir == Path("data")
+
+    def test_parse_autodata_from_flat_rair_section(self):
+        config_data = {
+            "rair": {
+                "autodata_dir": "./data/",
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.autodata_dir == Path("./data")
+
+    def test_merge_cli_autodata_overrides_config(self):
+        config = RairConfig(
+            archive_dir=Path("config_archive"),
+            autodata_dir=Path("config_data"),
+        )
+
+        result = merge_config_with_cli(
+            config,
+            cli_input=None,
+            cli_output=None,
+            cli_exclude=None,
+            cli_archive_dir=None,
+            cli_autodata=Path("cli_data"),
+        )
+
+        assert result.autodata_dir == Path("cli_data")
+
+    def test_merge_cli_autodata_none_keeps_config(self):
+        config = RairConfig(
+            archive_dir=Path("config_archive"),
+            autodata_dir=Path("config_data"),
+        )
+
+        result = merge_config_with_cli(
+            config,
+            cli_input=None,
+            cli_output=None,
+            cli_exclude=None,
+            cli_archive_dir=None,
+            cli_autodata=None,
+        )
+
+        assert result.autodata_dir == Path("config_data")
+
+    def test_autodata_in_pyproject_toml(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pyproject_path = Path(tmpdir) / "pyproject.toml"
+            pyproject_path.write_text("""
+[tool.rair]
+autodata_dir = "project_data/"
+""")
+
+            result = load_config(Path(tmpdir))
+            assert result.autodata_dir == Path("project_data")

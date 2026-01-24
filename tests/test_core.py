@@ -429,3 +429,126 @@ class TestRunWithCommandOverride:
                     assert "python" in called_command[0].lower()
                     assert str(script_path) in called_command
                     assert exit_code == 0
+
+
+class TestAutoDiscoveryFeature:
+    def test_input_fallback_all_tracked_as_input(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            script_path = tmpdir_path / "script.py"
+            script_path.write_text("print('hello')")
+
+            input_file = tmpdir_path / "input.txt"
+            input_file.write_text("input data")
+
+            config = RairConfig(
+                input_glob=[],
+                output_glob=[],
+                exclude_glob=[],
+                archive_dir=tmpdir_path / "archive",
+                autodata_dir=tmpdir_path,
+                capture_output=False,
+            )
+
+            with patch("rair.git._call_git_command") as mock_git:
+                mock_git.return_value = ""
+                exit_code = run(script_path, [], config)
+
+            assert exit_code == 0
+
+    def test_excludes_git_tracked_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            script_path = tmpdir_path / "script.py"
+            script_path.write_text("print('hello')")
+
+            tracked_file = tmpdir_path / "tracked.py"
+            tracked_file.write_text("tracked code")
+
+            config = RairConfig(
+                input_glob=[],
+                output_glob=[],
+                exclude_glob=[],
+                archive_dir=tmpdir_path / "archive",
+                autodata_dir=tmpdir_path,
+                capture_output=False,
+            )
+
+            with patch("rair.git._call_git_command") as mock_git:
+                mock_git.return_value = "tracked.py"
+                exit_code = run(script_path, [], config)
+
+            assert exit_code == 0
+
+    def test_excludes_hidden_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            script_path = tmpdir_path / "script.py"
+            script_path.write_text("print('hello')")
+
+            hidden_file = tmpdir_path / ".secret"
+            hidden_file.write_text("secret")
+
+            config = RairConfig(
+                input_glob=[],
+                output_glob=[],
+                exclude_glob=[],
+                archive_dir=tmpdir_path / "archive",
+                autodata_dir=tmpdir_path,
+                capture_output=False,
+            )
+
+            with patch("rair.git._call_git_command") as mock_git:
+                mock_git.return_value = ""
+                exit_code = run(script_path, [], config)
+
+            assert exit_code == 0
+
+    def test_excludes_hidden_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            script_path = tmpdir_path / "script.py"
+            script_path.write_text("print('hello')")
+
+            cache_dir = tmpdir_path / ".cache"
+            cache_dir.mkdir()
+            config = RairConfig(
+                input_glob=[],
+                output_glob=[],
+                exclude_glob=[],
+                archive_dir=tmpdir_path / "archive",
+                autodata_dir=tmpdir_path,
+                capture_output=False,
+            )
+
+            with patch("rair.git._call_git_command") as mock_git:
+                mock_git.return_value = ""
+                exit_code = run(script_path, [], config)
+
+            assert exit_code == 0
+
+    def test_fallback_disabled_by_input_glob(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            script_path = tmpdir_path / "script.py"
+            script_path.write_text("print('hello')")
+
+            config = RairConfig(
+                input_glob=["*.py"],
+                output_glob=[],
+                exclude_glob=[],
+                archive_dir=tmpdir_path / "archive",
+                autodata_dir=tmpdir_path,
+                capture_output=False,
+            )
+
+            with patch("rair.git._call_git_command") as mock_git:
+                mock_git.return_value = ""
+                exit_code = run(script_path, [], config)
+
+            assert exit_code == 0

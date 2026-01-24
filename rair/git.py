@@ -61,7 +61,7 @@ def get_diff_hash(diff: str) -> str:
     """Return a short hash of the git diff."""
     if not diff:
         return ""
-    return hashlib.sha256(diff.encode("utf-8")).hexdigest()[:20]  # truncated to 160 bit 
+    return hashlib.sha256(diff.encode("utf-8")).hexdigest()[:20]  # truncated to 160 bit
 
 
 def get_tracking_url(cwd: Optional[Path] = None) -> str:
@@ -93,3 +93,24 @@ def get_status(cwd: Optional[Path] = None) -> dict[str, str]:
         "diff_hash": diff_hash,
         "tracking_url": tracking_url,
     }
+
+
+def get_tracked_files(cwd: Optional[Path] = None) -> list[Path]:
+    """Return list of git-tracked files in directory.
+
+    Args:
+        cwd: Directory to search (defaults to current)
+
+    Returns:
+        List of Path objects for tracked files
+    """
+    try:
+        stdout = _call_git_command(["ls-files", "--full-name", "--cached"], cwd=cwd)
+        if not stdout:
+            return []
+
+        base_path = cwd if cwd else Path(".")
+        files = stdout.strip().split('\n')
+        return [base_path / f for f in files if f]
+    except subprocess.CalledProcessError:
+        return []

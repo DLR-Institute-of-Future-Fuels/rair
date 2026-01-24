@@ -9,7 +9,6 @@ from typer import Argument, Option
 from .config import load_config, merge_config_with_cli, RairConfig
 from .core import run
 from .cli_parser import is_script_extension
-from .config import RairConfig
 
 app = typer.Typer(
     add_completion=False,
@@ -55,6 +54,14 @@ def main(
         dir_okay=True,
         resolve_path=True,
     ),
+    autodata: Optional[Path] = Option(
+        default=None,
+        help="Directory for auto-discovering input/output files",
+        exists=False,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
     capture_output: bool = Option(
         default=True,
         help="Capture and save script output to out.txt",
@@ -75,7 +82,7 @@ def main(
     else:
         command = script_or_command
         if not args:
-            raise typer.BadParameter(f"No script specified after command '{command}'")
+            raise typer.BadParameter(f"No script specified after command \'{command}\'")
         script = Path(args[0])
         script_args = args[1:]
 
@@ -89,6 +96,7 @@ def main(
         output,
         exclude,
         archive_dir,
+        autodata if autodata is not None else project_dir,
     )
 
     run_config = RairConfig(
@@ -96,6 +104,7 @@ def main(
         output_glob=merged_config.output_glob,
         exclude_glob=merged_config.exclude_glob,
         archive_dir=merged_config.archive_dir,
+        autodata_dir=merged_config.autodata_dir,
         capture_output=capture_output,
     )
 
