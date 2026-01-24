@@ -166,6 +166,7 @@ def write_run_info(
     output_files: list[TrackedFile],
     archived_files: dict[str, Path],
     combined_hash: str,
+    execution_time: float
 ) -> None:
     """Write the info.md file for a run."""
     gitlab_link = get_gitlab_link(git_info.tracking_url, git_info.commit_hash)
@@ -180,7 +181,8 @@ def write_run_info(
 
     with open(run_dir / "info.md", "w") as f:
         f.write("# Run Information\n\n")
-        f.write(f"- Run time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"- Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"- Execution time: {execution_time:.3f} s\n")
         f.write(f"- Command: `{display_script}`\n\n")
 
         f.write("## Git Information\n\n")
@@ -259,11 +261,13 @@ def write_run_json(
     archived_files: dict[str, Path],
     has_output: bool = False,
     combined_hash: str = "",
+    execution_time: float = 0
 ) -> None:
     """Write the run.json file for a run."""
     run_data: dict[str, Any] = {
         "run_id": run_dir.name,
         "run_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "execution_time": execution_time,
         "command": command,
         "git": {
             "commit_hash": git_info.commit_hash,
@@ -309,7 +313,6 @@ def archive_files(
         archived[path_str] = dest_path
     return archived
 
-
 def create_run_info(
     run_id: str,
     command: list[str],
@@ -320,6 +323,7 @@ def create_run_info(
     output_snapshot: FileSnapshot,
     script_output: str | None = None,
     combined_hash: str = "",
+    execution_time: float = 0
 ) -> None:
     """Create a complete run with all data archived and info written."""
     run_dir = create_run_directory(archive_dir, run_id)
@@ -338,6 +342,7 @@ def create_run_info(
         list(output_snapshot.files.values()),
         archived_files,
         combined_hash,
+        execution_time
     )
 
     has_output = script_output is not None and script_output != ""
@@ -356,4 +361,5 @@ def create_run_info(
         archived_files,
         has_output,
         combined_hash,
+        execution_time
     )

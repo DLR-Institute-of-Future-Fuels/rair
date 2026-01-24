@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -121,6 +122,9 @@ def run(
         script_output: str | None = None
         return_code: int
 
+        # Time the script execution
+        start_time = time.time()
+        
         if config.capture_output:
             process = subprocess.Popen(
                 full_command,
@@ -145,6 +149,9 @@ def run(
                 cwd=str(base_dir),
             )
             return_code = result.returncode
+            
+        end_time = time.time()
+        execution_time = end_time - start_time
 
         if should_use_auto_discovery_for_output(config):
             candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, config.archive_dir.absolute())
@@ -169,6 +176,7 @@ def run(
             output_snapshot=after_snapshot,
             script_output=script_output,
             combined_hash=full_hash,
+            execution_time=execution_time,
         )
 
         return return_code
