@@ -1,4 +1,4 @@
-# Rair - Simple Data Versioning for Python Experiments
+# Rair - Research Archival & Integrity Recorder
 
 This is an Python package for data versioning.
 
@@ -74,9 +74,14 @@ capture_output = true
 
 ### Features
 
-- **Auto-discovery**: Automatically discover input/output files using hash-based change detection
-- **Hash caching**: Cache file hashes in `.rair_cache/` directory for faster subsequent runs
+- **Auto-discovery**: Automatically discover input/output files using hash-based change detection for outputs
+- **Hash caching**: Cache hash calculations in `.rair_cache/` for fast operation on large data files
 - **Git diff tracking**: Track uncommitted changes alongside git commits
+- **Archive format**: Human-readable markdown and machine-readable JSON
+- **Flexible configuration**: Configure via CLI, or config file `.rair.toml`, or `pyproject.toml`
+- **Output capture**: Captures stdout/stderr to a file
+- **Deduplication**: Avoids storing duplicate data files by using content hashes
+
 
 ## How it works
 
@@ -95,7 +100,7 @@ index 3bfb495..97ab218 100644
 +p2 = 9.8
 ```
 
-The info file stored with each result includes:
+The info.md file stored for each run includes:
 ---
 # Data information
 
@@ -128,5 +133,5 @@ rairarchive/runs/
 To restore the version a file was created with, the following commands can be used:
 ```bash
 git checkout 44ec730
-git apply rairarchive/20260106-154510_44ec730-1a2b3c/git_diff.patch
+git apply rairarchive/20260124-001-ee207dee/git_diff.patch
 ```
