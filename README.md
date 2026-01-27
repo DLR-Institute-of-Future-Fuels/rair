@@ -4,9 +4,11 @@ This is an Python package for data versioning.
 
 When running experiments, model parameters and model details needs to be tweaked
 frequently. Committing minimal changes clutters the git history and makes it hard to track
-actual model modifications. This package allows to link data files to exact code versions
-without the need to commit all changes to git. It stores code diffs alongside the git commit
-reference.
+actual model modifications. This package allows to link modeling results to exact code versions
+without the need to commit all changes to git. Therefore it archives code diffs alongside the git commit
+reference. It tacks input and intermediate data as well to guarantee full reproducibility for every run.
+
+Using heuristics, Rair can be used in many scenarios without any manual configuration.
 
 ## Installation
 
@@ -17,11 +19,15 @@ pip install git+https://gitlab.dlr.de/krus_ni/simple_data_versioning@main
 ## How to use
 
 ```bash
-# Run a Python script
+# Run a Python script with automatic tracing of all data files
+# in the project directory
+rair myscript.py
+
+# Run a Python script with script arguments
 rair myscript.py arg1 arg2
 
 # Run with explicit command
-rair python mymodel.py arg1 arg2
+rair python3 mymodel.py arg1 arg2
 
 # The first argument can be a Python script or any arbitrary command
 rair make --all
@@ -30,7 +36,7 @@ rair make --all
 rair --input "data/*.csv" --output "results/*.json" myscript.py
 
 # If only input files are specified, outputs are auto-discovered
-rair --input "data/*.csv" --input parameters.txt myscript.py 
+rair --input "data/*.csv" --input parameters.txt myscript.py
 ```
 
 ### Configuration
