@@ -37,6 +37,9 @@ rair --input "data/*.csv" --output "results/*.json" myscript.py
 
 # If only input files are specified, outputs are auto-discovered
 rair --input "data/*.csv" --input parameters.txt myscript.py
+
+# Run interactive setup to configure rair for your project
+rair --setup
 ```
 
 ### Configuration
@@ -75,6 +78,7 @@ capture_output = true
 --autodata DIRECTORY       Directory for auto-discovering input/output files
 --capture-output/--no-capture-output
                            Capture stdout to out.txt [default: enabled]
+--setup/--no-setup         Run interactive setup dialog
 --help                     Show help message
 ```
 
