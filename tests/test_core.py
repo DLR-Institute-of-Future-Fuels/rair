@@ -3,7 +3,7 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, MagicMock
 
 from rair.core import run
 from rair.config import RairConfig
@@ -504,3 +504,27 @@ class TestAutoDiscoveryFeature:
                 exit_code = run(script_path, tmpdir_path, [], config)
 
             assert exit_code == 0
+
+
+class TestRunInNonGitFolder:
+    def test_run_succeeds_in_non_git_folder(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            script_path = tmpdir_path / "test.py"
+            script_path.write_text("print('hello from non-git folder')")
+
+            config = RairConfig(
+                input_glob=[],
+                output_glob=[],
+                exclude_glob=[],
+                archive_dir=tmpdir_path / "archive",
+                capture_output=False,
+            )
+
+            exit_code = run(script_path, tmpdir_path, [], config)
+            assert exit_code == 0
+
+            archive_dir = tmpdir_path / "archive"
+            runs_dir = archive_dir / "runs"
+            assert runs_dir.exists()
