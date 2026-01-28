@@ -10,6 +10,7 @@ from .config import load_config, merge_config_with_cli, RairConfig
 from .core import run
 from .cli_parser import is_script_extension
 from .git import get_toplevel
+from .setup import setup_interactive
 
 app = typer.Typer(
     add_completion=False,
@@ -19,8 +20,8 @@ app = typer.Typer(
 
 @app.command()
 def main(
-    script_or_command: str = Argument(
-        ...,
+    script_or_command: Optional[str] = Argument(
+        default=None,
         help="Script path (with extension) or command (python, bash, make, etc.)",
     ),
     args: list[str] = Argument(
@@ -67,6 +68,10 @@ def main(
         default=True,
         help="Capture and save script output to out.txt",
     ),
+    setup: bool = Option(
+        default=False,
+        help="Run interactive setup dialog",
+    ),
 ) -> None:
     """Run a script with data versioning.
 
@@ -74,7 +79,16 @@ def main(
         rair myscript.py arg1 arg2
         rair python mymodel.py arg1 arg2
         rair make --all
+        rair --setup
     """
+
+    if setup:
+        setup_interactive()
+        raise typer.Exit(0)
+
+    if script_or_command is None:
+        typer.echo("Error: No script or command specified. Use --help for usage information.")
+        raise typer.Exit(1)
 
     if is_script_extension(script_or_command):
         command = None

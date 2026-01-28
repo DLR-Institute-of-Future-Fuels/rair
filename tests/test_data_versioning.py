@@ -169,7 +169,7 @@ class TestDataVersioningIntegration:
                         archived_files = list(data_dir.glob("*"))
                         # Files should be deduplicated by hash
                         # All files with same content point to same hash
-                        hashes = set()
+                        hashes: set[str] = set()
                         for f in archived_files:
                             if f.is_file():
                                 # Extract hash from filename (format: hash_name)

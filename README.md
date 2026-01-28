@@ -19,7 +19,7 @@ pip install git+https://gitlab.dlr.de/krus_ni/simple_data_versioning@main
 ## How to use
 
 ```bash
-# Run a Python script with automatic tracing of all data files
+# Run a Python script with automatic tracking of all data files
 # in the project directory
 rair myscript.py
 
