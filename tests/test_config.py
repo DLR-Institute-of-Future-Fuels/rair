@@ -409,3 +409,132 @@ auto_discover = false
 
             result = load_config(Path(tmpdir))
             assert result.auto_discover is False
+
+
+class TestHierarchicalConfig:
+    def test_local_config_overrides_project_config(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            project_config = project_dir / ".rair.toml"
+            project_config.write_text("""
+[rair]
+archive_dir = "project_archive"
+input_glob = ["project_data/*.csv"]
+output_glob = ["project_output/*.txt"]
+""")
+
+            local_config = execution_dir / ".rair.toml"
+            local_config.write_text("""
+[rair]
+archive_dir = "local_archive"
+input_glob = ["local_data/*.json"]
+""")
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+
+            assert result.archive_dir == Path("local_archive")
+            assert result.input_glob == ["local_data/*.json"]
+            assert result.output_glob == []
+
+    def test_local_config_not_found_falls_back_to_project(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            project_config = project_dir / ".rair.toml"
+            project_config.write_text("""
+[rair]
+archive_dir = "project_archive"
+input_glob = ["data/*.csv"]
+output_glob = ["results/*.txt"]
+""")
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+
+            assert result.archive_dir == Path("project_archive")
+            assert result.input_glob == ["data/*.csv"]
+            assert result.output_glob == ["results/*.txt"]
+
+    def test_no_config_returns_defaults(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+
+            assert result.archive_dir == Path("rairarchive")
+            assert result.input_glob == []
+            assert result.output_glob == []
+            assert result.auto_discover is True
+
+    def test_local_pyproject_toml_overrides_project(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            project_config = project_dir / ".rair.toml"
+            project_config.write_text("""
+[rair]
+archive_dir = "project_archive"
+""")
+
+            local_pyproject = execution_dir / "pyproject.toml"
+            local_pyproject.write_text("""
+[tool.rair]
+archive_dir = "local_archive"
+input_glob = ["input/*.json"]
+""")
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+
+            assert result.archive_dir == Path("local_archive")
+            assert result.input_glob == ["input/*.json"]
+
+    def test_local_config_with_custom_config_name(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            project_config = project_dir / "custom.toml"
+            project_config.write_text("""
+[rair]
+archive_dir = "project_archive"
+""")
+
+            local_config = execution_dir / "custom.toml"
+            local_config.write_text("""
+[rair]
+archive_dir = "local_archive"
+""")
+
+            result = load_hierarchical_config(execution_dir, project_dir, "custom.toml")
+
+            assert result.archive_dir == Path("local_archive")
+
+    def test_same_directory_as_project_finds_local_config(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            project_dir.mkdir()
+
+            project_config = project_dir / ".rair.toml"
+            project_config.write_text("""
+[rair]
+archive_dir = "project_archive"
+""")
+
+            result = load_hierarchical_config(project_dir, project_dir)
+
+            assert result.archive_dir == Path("project_archive")

@@ -1,13 +1,12 @@
 """CLI for rair using Typer."""
 
-import os
 from pathlib import Path
 from typing import Optional
 
 import typer
 from typer import Argument, Option
 
-from .config import load_config, merge_config_with_cli, RairConfig
+from .config import load_hierarchical_config, merge_config_with_cli, RairConfig
 from .core import run
 from .cli_parser import is_script_extension
 from .git import get_toplevel
@@ -87,6 +86,8 @@ def main(
         rair --setup
     """
 
+    execution_dir = Path.cwd()
+
     if setup:
         setup_interactive(auto_discover=auto_discover)
         raise typer.Exit(0)
@@ -94,8 +95,6 @@ def main(
     if script_or_command is None:
         typer.echo("Error: No script or command specified. Use --help for usage information.")
         raise typer.Exit(1)
-
-    execution_dir = Path.cwd()
 
     if is_script_extension(script_or_command):
         command = None
@@ -111,7 +110,7 @@ def main(
 
     project_dir = get_toplevel(script.parent) if script else get_toplevel()
 
-    file_config = load_config(project_dir, config.name if config else None)
+    file_config = load_hierarchical_config(execution_dir, project_dir, config.name if config else None)
 
     merged_config = merge_config_with_cli(
         file_config,

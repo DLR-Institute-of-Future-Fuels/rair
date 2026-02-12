@@ -149,6 +149,40 @@ def load_config(project_dir: Path, config_name: Optional[str] = None) -> RairCon
     return parse_rair_config(config_data)
 
 
+def load_hierarchical_config(
+    execution_dir: Path,
+    project_dir: Path,
+    config_name: Optional[str] = None,
+) -> RairConfig:
+    """Load rair configuration with hierarchical lookup.
+
+    First checks execution_dir for a local config file. If found, uses it
+    and ignores project-level config. If not found, falls back to project_dir.
+
+    This allows different directories to have different configurations without
+    merging - local config completely overrides project config.
+
+    Args:
+        execution_dir: Current working directory (checked first)
+        project_dir: Project root directory (fallback)
+        config_name: Specific config file name (default: .rair.toml)
+
+    Returns:
+        RairConfig instance with loaded configuration
+    """
+    local_config_path = find_config_file(execution_dir, config_name)
+    if local_config_path is not None:
+        config_data = load_toml_config(local_config_path)
+        return parse_rair_config(config_data)
+
+    local_pyproject_path = find_pyproject_toml(execution_dir)
+    if local_pyproject_path is not None:
+        config_data = load_toml_config(local_pyproject_path)
+        return parse_rair_config(config_data)
+
+    return load_config(project_dir, config_name)
+
+
 def merge_config_with_cli(
     config: RairConfig,
     cli_input: Optional[list[str]],

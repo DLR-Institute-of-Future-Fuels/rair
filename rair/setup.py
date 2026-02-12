@@ -1,10 +1,16 @@
 """Interactive setup dialog for rair configuration."""
 
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 import typer
 from typer import confirm, prompt
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomli
 
 from .git import get_toplevel
 from .config import RairConfig, load_config
@@ -42,11 +48,40 @@ def add_gitignore_entries(git_dir: Path, entries: list[str]) -> None:
             f.write("\n" + "\n".join(new_entries) + "\n")
 
 
+def write_config_to_file(config: RairConfig, config_path: Path) -> None:
+    """Write RairConfig to .rair.toml file."""
+    config_dict = {
+        "rair": {
+            "archive_dir": str(config.archive_dir),
+            "input": config.input_glob,
+            "output": config.output_glob,
+            "exclude": config.exclude_glob,
+            "auto_discover": config.auto_discover,
+        }
+    }
+
+    config_content = ""
+    for section, values in config_dict.items():
+        config_content += f"[{section}]\n"
+        for key, value in values.items():
+            if isinstance(value, list):
+                for item in value:
+                    config_content += f'{key} = "{item}"\n'
+            elif isinstance(value, str):
+                config_content += f'{key} = "{value}"\n'
+            else:
+                config_content += f"{key} = {value}\n"
+            config_content += "\n"
+
+    config_path.write_text(config_content)
+
+
 def setup_interactive(
     archive_dir: Optional[str] = None,
     input_patterns: Optional[str] = None,
     output_patterns: Optional[str] = None,
     auto_discover: Optional[bool] = None,
+    config_location: Optional[str] = None,
 ) -> RairConfig:
     """Run interactive setup dialog.
 
@@ -55,6 +90,7 @@ def setup_interactive(
         input_patterns: Pre-specified input patterns (optional)
         output_patterns: Pre-specified output patterns (optional)
         auto_discover: Pre-specified auto-discover setting (optional)
+        config_location: "local" or "project" for config saving (optional)
 
     Returns:
         RairConfig with the configured settings
@@ -62,6 +98,7 @@ def setup_interactive(
     typer.echo("Welcome to rair setup!")
     typer.echo("=" * 40)
 
+    execution_dir = Path.cwd()
     project_dir = get_toplevel()
     is_git = is_git_project(project_dir)
 
@@ -119,6 +156,25 @@ def setup_interactive(
         typer.echo("\n[WARNING] Auto-discovery is disabled but no input/output patterns specified.")
         typer.echo("          No files will be tracked unless you add patterns to your config.")
 
+    if config_location is None:
+        if execution_dir != project_dir:
+            typer.echo("\n6. Where should the configuration be saved?")
+            typer.echo("   (c)urrent directory - only affects scripts in this folder")
+            typer.echo("   (p)roject - affects all scripts in the project")
+            choice = prompt(
+                "Save for (c)urrent directory or (p)roject?",
+                default="c",
+                type=str,
+            )
+            config_location = "local" if choice.startswith("c") else "project"
+        else:
+            config_location = "project"
+
+    if config_location == "local":
+        config_path = execution_dir / ".rair.toml"
+    else:
+        config_path = project_dir / ".rair.toml"
+
     config = RairConfig(
         archive_dir=Path(archive_dir) if archive_dir else Path("rairarchive"),
         input_glob=input_list,
@@ -127,8 +183,11 @@ def setup_interactive(
         auto_discover=auto_discover,
     )
 
+    write_config_to_file(config, config_path)
+
     typer.echo("\n" + "=" * 40)
-    typer.echo("Setup complete! Configuration:")
+    typer.echo("Setup complete! Configuration saved to:")
+    typer.echo(f"  {config_path}")
     typer.echo(f"  Archive directory: {config.archive_dir}")
     typer.echo(f"  Input patterns: {config.input_glob}")
     typer.echo(f"  Output patterns: {config.output_glob}")
