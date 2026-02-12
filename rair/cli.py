@@ -72,6 +72,10 @@ def main(
         default=True,
         help="Enable auto-discovery when --input/--output not specified",
     ),
+    output_files_in_run: bool = Option(
+        default=False,
+        help="Create hardlinks to output files in the run folder",
+    ),
     setup: bool = Option(
         default=False,
         help="Run interactive setup dialog",
@@ -89,7 +93,10 @@ def main(
     execution_dir = Path.cwd()
 
     if setup:
-        setup_interactive(auto_discover=auto_discover)
+        setup_interactive(
+            auto_discover=auto_discover,
+            output_files_in_run=output_files_in_run,
+        )
         raise typer.Exit(0)
 
     if script_or_command is None:
@@ -120,6 +127,7 @@ def main(
         archive_dir,
         autodata if autodata is not None else project_dir,
         auto_discover,
+        output_files_in_run,
     )
 
     run_config = RairConfig(
@@ -130,6 +138,7 @@ def main(
         autodata_dir=merged_config.autodata_dir,
         capture_output=capture_output,
         auto_discover=merged_config.auto_discover,
+        output_files_in_run=merged_config.output_files_in_run,
     )
 
     exit_code = run(script, project_dir, script_args, run_config, command, execution_dir)

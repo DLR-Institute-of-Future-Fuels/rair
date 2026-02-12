@@ -313,6 +313,35 @@ def archive_files(
         archived[path_str] = dest_path
     return archived
 
+
+def create_output_hardlinks_in_run(
+    snapshot: FileSnapshot,
+    run_dir: Path,
+    archived_paths: dict[str, Path],
+) -> None:
+    """Create hardlinks to output files in the run directory.
+
+    For each output file, creates a hardlink in run_dir pointing to
+    the archived copy in data/. This makes the run folder self-contained.
+
+    Args:
+        snapshot: FileSnapshot with tracked output files
+        run_dir: The runs/{run_id}/ directory
+        archived_paths: Dict mapping original paths to archived paths
+    """
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    for path_str, archived_path in archived_paths.items():
+        original_path = Path(path_str)
+        hardlink_path = run_dir / original_path.name
+        if not hardlink_path.exists():
+            try:
+                hardlink_path.hardlink_to(archived_path)
+            except OSError:
+                # If hardlink fails (cross-filesystem), skip silently
+                # The file is still safely archived in data/
+                pass
+
 def create_run_info(
     run_id: str,
     command: list[str],
@@ -323,7 +352,8 @@ def create_run_info(
     output_snapshot: FileSnapshot,
     script_output: str | None = None,
     combined_hash: str = "",
-    execution_time: float = 0
+    execution_time: float = 0,
+    output_files_in_run: bool = False,
 ) -> None:
     """Create a complete run with all data archived and info written."""
     run_dir = create_run_directory(archive_dir, run_id)
@@ -331,6 +361,9 @@ def create_run_info(
     archived_input = archive_files(input_snapshot, data_dir)
     archived_output = archive_files(output_snapshot, data_dir)
     archived_files = {**archived_input, **archived_output}
+
+    if output_files_in_run and archived_output:
+        create_output_hardlinks_in_run(output_snapshot, run_dir, archived_output)
 
     write_run_info(
         run_dir,

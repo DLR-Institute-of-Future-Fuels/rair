@@ -260,3 +260,73 @@ diff --git a/config.py b/config.py
         assert "learning_rate = base_lr * 0.05" in result
         assert "epochs = 150" in result
         assert "alpha = beta + 2" in result
+
+
+class TestOutputHardlinksInRun:
+    def test_creates_hardlinks_in_run_folder(self):
+        from rair.archive import create_output_hardlinks_in_run
+        from rair.models import FileSnapshot, TrackedFile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "runs" / "test_run"
+            data_dir = Path(tmpdir) / "data"
+            data_dir.mkdir()
+            run_dir.mkdir(parents=True)
+
+            source_file = data_dir / "abc123_output.txt"
+            source_file.write_text("test content")
+            mtime = source_file.stat().st_mtime
+
+            snapshot = FileSnapshot(files={})
+            tracked_file = TrackedFile(path=Path("output.txt"), hash="abc123", mtime=mtime)
+            snapshot.files["output.txt"] = tracked_file
+
+            archived_paths = {"output.txt": source_file}
+
+            create_output_hardlinks_in_run(snapshot, run_dir, archived_paths)
+
+            hardlink_path = run_dir / "output.txt"
+            assert hardlink_path.exists()
+            assert hardlink_path.stat().st_ino == source_file.stat().st_ino
+
+    def test_hardlink_skips_existing_files(self):
+        from rair.archive import create_output_hardlinks_in_run
+        from rair.models import FileSnapshot, TrackedFile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "runs" / "test_run"
+            data_dir = Path(tmpdir) / "data"
+            data_dir.mkdir()
+            run_dir.mkdir(parents=True)
+
+            source_file = data_dir / "abc123_output.txt"
+            source_file.write_text("test content")
+            mtime = source_file.stat().st_mtime
+
+            existing_file = run_dir / "output.txt"
+            existing_file.write_text("existing content")
+
+            snapshot = FileSnapshot(files={})
+            tracked_file = TrackedFile(path=Path("output.txt"), hash="abc123", mtime=mtime)
+            snapshot.files["output.txt"] = tracked_file
+
+            archived_paths = {"output.txt": source_file}
+
+            create_output_hardlinks_in_run(snapshot, run_dir, archived_paths)
+
+            assert existing_file.read_text() == "existing content"
+
+    def test_handles_empty_snapshot(self):
+        from rair.archive import create_output_hardlinks_in_run
+        from rair.models import FileSnapshot
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "runs" / "test_run"
+            run_dir.mkdir(parents=True)
+
+            snapshot = FileSnapshot(files={})
+            archived_paths = {}
+
+            create_output_hardlinks_in_run(snapshot, run_dir, archived_paths)
+
+            assert run_dir.exists()

@@ -187,6 +187,7 @@ def run(
             script_output=script_output,
             combined_hash=full_hash,
             execution_time=execution_time,
+            output_files_in_run=config.output_files_in_run,
         )
 
         return return_code

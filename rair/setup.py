@@ -84,6 +84,7 @@ def setup_interactive(
     input_patterns: Optional[str] = None,
     output_patterns: Optional[str] = None,
     auto_discover: Optional[bool] = None,
+    output_files_in_run: Optional[bool] = None,
     config_location: Optional[str] = None,
 ) -> RairConfig:
     """Run interactive setup dialog.
@@ -93,6 +94,7 @@ def setup_interactive(
         input_patterns: Pre-specified input patterns (optional)
         output_patterns: Pre-specified output patterns (optional)
         auto_discover: Pre-specified auto-discover setting (optional)
+        output_files_in_run: Pre-specified output_files_in_run setting (optional)
         config_location: "local" or "project" for config saving (optional)
 
     Returns:
@@ -160,9 +162,14 @@ def setup_interactive(
         typer.echo("\n[WARNING] Auto-discovery is disabled but no input/output patterns specified.")
         typer.echo("          No files will be tracked unless you add patterns to your config.")
 
+    if output_files_in_run is None:
+        typer.echo("\n6. Should rair create hardlinks to output files in the run folder?")
+        typer.echo("   This makes it easy to find all outputs in one place.")
+        output_files_in_run = confirm("Place hardlinks in run folder?", default=False)
+
     if config_location is None:
         if execution_dir != project_dir:
-            typer.echo("\n6. Where should the configuration be saved?")
+            typer.echo("\n7. Where should the configuration be saved?")
             typer.echo("   (c)urrent directory - only affects scripts in this folder")
             typer.echo("   (p)roject - affects all scripts in the project")
             choice = prompt(
@@ -185,6 +192,7 @@ def setup_interactive(
         output_glob=output_list,
         autodata_dir=project_dir if auto_discover else None,
         auto_discover=auto_discover,
+        output_files_in_run=output_files_in_run,
     )
 
     write_config_to_file(config, config_path)
@@ -196,5 +204,6 @@ def setup_interactive(
     typer.echo(f"  Input patterns: {config.input_glob}")
     typer.echo(f"  Output patterns: {config.output_glob}")
     typer.echo(f"  Auto-discover: {config.auto_discover}")
+    typer.echo(f"  Output files in run: {config.output_files_in_run}")
 
     return config
