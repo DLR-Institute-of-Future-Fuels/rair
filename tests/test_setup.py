@@ -36,7 +36,7 @@ class TestWriteConfigToFile:
             assert 'input = "data/*.csv"' in content
             assert 'output = "results/*.json"' in content
             assert 'exclude = "*.tmp"' in content
-            assert "auto_discover = false" in content or "auto_discover = False" in content
+            assert "auto_discover = false" in content
 
     def test_write_config_with_empty_lists(self):
         with tempfile.TemporaryDirectory() as tmpdir:

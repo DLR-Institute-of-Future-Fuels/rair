@@ -70,6 +70,8 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
             else:
                 if isinstance(value, str):
                     config_content += f'{key} = "{value}"\n'
+                elif isinstance(value, bool):
+                    config_content += f"{key} = {str(value).lower()}\n"
                 else:
                     config_content += f"{key} = {value}\n"
             config_content += "\n"
