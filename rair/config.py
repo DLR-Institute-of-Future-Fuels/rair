@@ -65,9 +65,18 @@ def load_toml_config(config_path: Path) -> dict[str, Any]:
         return tomllib.load(f)
 
 
+def normalize_path(path: Path | str) -> str:
+    """Normalize path to use forward slashes for cross-platform compatibility."""
+    return str(path).replace("\\", "/")
+
+
 def _normalize_glob_value(val: Any) -> list[str]:
-    """Normalize glob fields that accept string or list."""
-    return [v for v in val if isinstance(v, str)] if isinstance(val, list) else [str(val)]
+    """Normalize glob fields that accept string or list.
+
+    Converts backslashes to forward slashes for cross-platform compatibility.
+    """
+    values = [v for v in val if isinstance(v, str)] if isinstance(val, list) else [str(val)]
+    return [v.replace("\\", "/") for v in values]
 
 
 def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_map: dict[str, str]) -> None:

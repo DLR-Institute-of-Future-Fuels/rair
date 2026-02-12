@@ -538,3 +538,40 @@ archive_dir = "project_archive"
             result = load_hierarchical_config(project_dir, project_dir)
 
             assert result.archive_dir == Path("project_archive")
+
+
+class TestPathNormalization:
+    def test_normalize_path_forward_slashes(self):
+        from rair.config import normalize_path
+        result = normalize_path("data/results/output")
+        assert result == "data/results/output"
+
+    def test_normalize_path_windows_backslashes(self):
+        from rair.config import normalize_path
+        result = normalize_path("data\\results\\output")
+        assert result == "data/results/output"
+
+    def test_normalize_path_path_object(self):
+        from rair.config import normalize_path
+        result = normalize_path(Path("data\\results"))
+        assert result == "data/results"
+
+    def test_normalize_path_mixed_slashes(self):
+        from rair.config import normalize_path
+        result = normalize_path("data\\results/output")
+        assert result == "data/results/output"
+
+    def test_normalize_glob_value_single_string(self):
+        from rair.config import _normalize_glob_value
+        result = _normalize_glob_value("data\\*.csv")
+        assert result == ["data/*.csv"]
+
+    def test_normalize_glob_value_list(self):
+        from rair.config import _normalize_glob_value
+        result = _normalize_glob_value(["data\\*.csv", "results\\*.json"])
+        assert result == ["data/*.csv", "results/*.json"]
+
+    def test_normalize_glob_value_mixed(self):
+        from rair.config import _normalize_glob_value
+        result = _normalize_glob_value(["data\\*.csv", "*.json"])
+        assert result == ["data/*.csv", "*.json"]

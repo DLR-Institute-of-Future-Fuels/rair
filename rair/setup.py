@@ -13,7 +13,7 @@ else:
     import tomli as tomli
 
 from .git import get_toplevel
-from .config import RairConfig, load_config
+from .config import RairConfig, load_config, normalize_path
 
 
 def is_git_project(directory: Path) -> bool:
@@ -52,7 +52,7 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
     """Write RairConfig to .rair.toml file."""
     config_dict = {
         "rair": {
-            "archive_dir": str(config.archive_dir),
+            "archive_dir": normalize_path(config.archive_dir),
             "input": config.input_glob,
             "output": config.output_glob,
             "exclude": config.exclude_glob,
