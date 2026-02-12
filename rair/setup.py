@@ -46,6 +46,7 @@ def setup_interactive(
     archive_dir: Optional[str] = None,
     input_patterns: Optional[str] = None,
     output_patterns: Optional[str] = None,
+    auto_discover: Optional[bool] = None,
 ) -> RairConfig:
     """Run interactive setup dialog.
 
@@ -53,6 +54,7 @@ def setup_interactive(
         archive_dir: Pre-specified archive directory (optional)
         input_patterns: Pre-specified input patterns (optional)
         output_patterns: Pre-specified output patterns (optional)
+        auto_discover: Pre-specified auto-discover setting (optional)
 
     Returns:
         RairConfig with the configured settings
@@ -108,11 +110,21 @@ def setup_interactive(
 
     output_list = [p.strip() for p in output_patterns.split(",") if p.strip()] if output_patterns else []
 
+    if auto_discover is None:
+        typer.echo("\n5. Should rair automatically discover files that changed?")
+        typer.echo("   Auto-discovery tracks files based on changes before/after your script runs.")
+        auto_discover = confirm("Enable auto-discovery for unspecified patterns?", default=True)
+
+    if not auto_discover and not input_list and not output_list:
+        typer.echo("\n[WARNING] Auto-discovery is disabled but no input/output patterns specified.")
+        typer.echo("          No files will be tracked unless you add patterns to your config.")
+
     config = RairConfig(
         archive_dir=Path(archive_dir) if archive_dir else Path("rairarchive"),
         input_glob=input_list,
         output_glob=output_list,
-        autodata_dir=project_dir,
+        autodata_dir=project_dir if auto_discover else None,
+        auto_discover=auto_discover,
     )
 
     typer.echo("\n" + "=" * 40)
@@ -120,5 +132,6 @@ def setup_interactive(
     typer.echo(f"  Archive directory: {config.archive_dir}")
     typer.echo(f"  Input patterns: {config.input_glob}")
     typer.echo(f"  Output patterns: {config.output_glob}")
+    typer.echo(f"  Auto-discover: {config.auto_discover}")
 
     return config

@@ -26,12 +26,16 @@ from .auto_detect import (
 
 def should_use_auto_discovery_for_input(config: RairConfig) -> bool:
     """Check if auto-discovery should be used for input files."""
-    return not config.input_glob and config.autodata_dir is not None
+    return (config.auto_discover and
+            not config.input_glob and
+            config.autodata_dir is not None)
 
 
 def should_use_auto_discovery_for_output(config: RairConfig) -> bool:
     """Check if auto-discovery should be used for output files."""
-    return not config.output_glob and config.autodata_dir is not None
+    return (config.auto_discover and
+            not config.output_glob and
+            config.autodata_dir is not None)
 
 
 def collect_files(

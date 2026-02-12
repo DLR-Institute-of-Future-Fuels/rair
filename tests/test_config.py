@@ -284,3 +284,128 @@ autodata_dir = "project_data/"
 
             result = load_config(Path(tmpdir))
             assert result.autodata_dir == Path("project_data")
+
+
+class TestAutoDiscover:
+    def test_auto_discover_defaults_to_true(self):
+        from rair.config import RairConfig
+        config = RairConfig()
+        assert config.auto_discover is True
+
+    def test_parse_auto_discover_from_tool_rair_section(self):
+        from rair.config import parse_rair_config
+        config_data: dict[str, Any] = {
+            "tool": {
+                "rair": {
+                    "auto_discover": False,
+                }
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.auto_discover is False
+
+    def test_parse_auto_discover_from_flat_rair_section(self):
+        from rair.config import parse_rair_config
+        config_data = {
+            "rair": {
+                "auto_discover": False,
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.auto_discover is False
+
+    def test_parse_auto_discover_true_from_config(self):
+        from rair.config import parse_rair_config
+        config_data: dict[str, Any] = {
+            "tool": {
+                "rair": {
+                    "auto_discover": True,
+                }
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.auto_discover is True
+
+    def test_merge_cli_auto_discover_false_overrides_config(self):
+        from rair.config import RairConfig, merge_config_with_cli
+        config = RairConfig(
+            archive_dir=Path("config_archive"),
+            auto_discover=True,
+        )
+
+        result = merge_config_with_cli(
+            config,
+            cli_input=None,
+            cli_output=None,
+            cli_exclude=None,
+            cli_archive_dir=None,
+            cli_autodata=None,
+            cli_auto_discover=False,
+        )
+
+        assert result.auto_discover is False
+
+    def test_merge_cli_auto_discover_true_overrides_config(self):
+        from rair.config import RairConfig, merge_config_with_cli
+        config = RairConfig(
+            archive_dir=Path("config_archive"),
+            auto_discover=False,
+        )
+
+        result = merge_config_with_cli(
+            config,
+            cli_input=None,
+            cli_output=None,
+            cli_exclude=None,
+            cli_archive_dir=None,
+            cli_autodata=None,
+            cli_auto_discover=True,
+        )
+
+        assert result.auto_discover is True
+
+    def test_merge_cli_auto_discover_none_keeps_config(self):
+        from rair.config import RairConfig, merge_config_with_cli
+        config = RairConfig(
+            archive_dir=Path("config_archive"),
+            auto_discover=False,
+        )
+
+        result = merge_config_with_cli(
+            config,
+            cli_input=None,
+            cli_output=None,
+            cli_exclude=None,
+            cli_archive_dir=None,
+            cli_autodata=None,
+            cli_auto_discover=None,
+        )
+
+        assert result.auto_discover is False
+
+    def test_auto_discover_in_rair_toml(self):
+        from rair.config import load_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / ".rair.toml"
+            config_path.write_text("""
+[rair]
+auto_discover = false
+""")
+
+            result = load_config(Path(tmpdir))
+            assert result.auto_discover is False
+
+    def test_auto_discover_in_pyproject_toml(self):
+        from rair.config import load_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pyproject_path = Path(tmpdir) / "pyproject.toml"
+            pyproject_path.write_text("""
+[tool.rair]
+auto_discover = false
+""")
+
+            result = load_config(Path(tmpdir))
+            assert result.auto_discover is False

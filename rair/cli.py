@@ -68,6 +68,10 @@ def main(
         default=True,
         help="Capture and save script output to out.txt",
     ),
+    auto_discover: bool = Option(
+        default=True,
+        help="Enable auto-discovery when --input/--output not specified",
+    ),
     setup: bool = Option(
         default=False,
         help="Run interactive setup dialog",
@@ -83,7 +87,7 @@ def main(
     """
 
     if setup:
-        setup_interactive()
+        setup_interactive(auto_discover=auto_discover)
         raise typer.Exit(0)
 
     if script_or_command is None:
@@ -113,6 +117,7 @@ def main(
         exclude,
         archive_dir,
         autodata if autodata is not None else project_dir,
+        auto_discover,
     )
 
     run_config = RairConfig(
@@ -122,6 +127,7 @@ def main(
         archive_dir=merged_config.archive_dir,
         autodata_dir=merged_config.autodata_dir,
         capture_output=capture_output,
+        auto_discover=merged_config.auto_discover,
     )
 
     exit_code = run(script, project_dir, script_args, run_config, command)

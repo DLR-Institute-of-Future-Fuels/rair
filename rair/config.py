@@ -21,6 +21,7 @@ class RairConfig:
     exclude_glob: list[str] = field(default_factory=list[str])
     autodata_dir: Optional[Path] = None
     capture_output: bool = True
+    auto_discover: bool = True
 
 
 def find_config_file(project_dir: Path, config_name: Optional[str] = None) -> Optional[Path]:
@@ -84,7 +85,7 @@ def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_m
                 val = _normalize_glob_value(val)
             elif config_field in ["archive_dir", "autodata_dir"]:
                 val = Path(val)
-            elif config_field == "capture_output":
+            elif config_field in ["capture_output", "auto_discover"]:
                 val = bool(val)
             setattr(config, config_field, val)
 
@@ -110,6 +111,7 @@ def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
         "exclude": "exclude_glob",
         "capture_output": "capture_output",
         "autodata_dir": "autodata_dir",
+        "auto_discover": "auto_discover",
     }
 
     if "tool" in config_data and "rair" in config_data["tool"]:
@@ -154,6 +156,7 @@ def merge_config_with_cli(
     cli_exclude: Optional[list[str]],
     cli_archive_dir: Optional[Path],
     cli_autodata: Optional[Path] = None,
+    cli_auto_discover: Optional[bool] = None,
 ) -> RairConfig:
     """Merge file config with CLI arguments.
 
@@ -166,6 +169,7 @@ def merge_config_with_cli(
         cli_exclude: CLI --exclude value
         cli_archive_dir: CLI --archive-dir value
         cli_autodata: CLI --autodata value
+        cli_auto_discover: CLI --no-auto-discover value
 
     Returns:
         Merged RairConfig
@@ -184,5 +188,8 @@ def merge_config_with_cli(
 
     if cli_autodata is not None:
         config.autodata_dir = cli_autodata
+
+    if cli_auto_discover is not None:
+        config.auto_discover = cli_auto_discover
 
     return config

@@ -14,6 +14,7 @@ RAIR_OPTIONS = {
 
 RAIR_BOOLEAN_OPTIONS = {
     "--capture-output",
+    "--no-auto-discover",
 }
 
 ALL_RAIR_OPTIONS = RAIR_OPTIONS | RAIR_BOOLEAN_OPTIONS

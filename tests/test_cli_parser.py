@@ -158,6 +158,7 @@ class TestRairOptions:
     def test_rair_boolean_options_set(self):
         expected = {
             "--capture-output",
+            "--no-auto-discover",
         }
         assert RAIR_BOOLEAN_OPTIONS == expected
 
@@ -169,5 +170,6 @@ class TestRairOptions:
             "--exclude",
             "--archive-dir",
             "--capture-output",
+            "--no-auto-discover",
         }
         assert ALL_RAIR_OPTIONS == expected
