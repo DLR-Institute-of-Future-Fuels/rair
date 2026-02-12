@@ -67,10 +67,11 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
             if isinstance(value, list):
                 for item in value:
                     config_content += f'{key} = "{item}"\n'
-            elif isinstance(value, str):
-                config_content += f'{key} = "{value}"\n'
             else:
-                config_content += f"{key} = {value}\n"
+                if isinstance(value, str):
+                    config_content += f'{key} = "{value}"\n'
+                else:
+                    config_content += f"{key} = {value}\n"
             config_content += "\n"
 
     config_path.write_text(config_content)
