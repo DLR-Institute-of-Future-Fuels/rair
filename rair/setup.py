@@ -124,9 +124,10 @@ def setup_interactive(
             archive_in_git = False
 
     if archive_in_git:
-        typer.echo(f"\n2. The archive directory '{archive_dir}' is inside your git project.")
-        if confirm(f"Add '{archive_dir}/' to .gitignore to avoid committing archives?", default=True):
-            add_gitignore_entries(project_dir, [f"{archive_dir}/"])
+        normalized_archive = normalize_path(archive_path)
+        typer.echo(f"\n2. The archive directory '{normalized_archive}' is inside your git project.")
+        if confirm(f"Add '{normalized_archive}/' to .gitignore to avoid committing archives?", default=True):
+            add_gitignore_entries(project_dir, [f"{normalized_archive}/"])
 
     if input_patterns is None:
         typer.echo("\n3. What files/folders should be tracked as input data?")
