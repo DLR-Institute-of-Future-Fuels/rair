@@ -575,3 +575,93 @@ class TestPathNormalization:
         from rair.config import _normalize_glob_value
         result = _normalize_glob_value(["data\\*.csv", "*.json"])
         assert result == ["data/*.csv", "*.json"]
+
+
+class TestDefaultCommand:
+    def test_default_command_defaults_to_none(self):
+        from rair.config import RairConfig
+        config = RairConfig()
+        assert config.default_command is None
+
+    def test_parse_default_command_from_tool_rair_section(self):
+        from rair.config import parse_rair_config
+        config_data: dict[str, Any] = {
+            "tool": {
+                "rair": {
+                    "default_command": "make",
+                }
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.default_command == "make"
+
+    def test_parse_default_command_from_flat_rair_section(self):
+        from rair.config import parse_rair_config
+        config_data = {
+            "rair": {
+                "default_command": "make",
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.default_command == "make"
+
+    def test_default_command_with_empty_string(self):
+        from rair.config import parse_rair_config
+        config_data: dict[str, Any] = {
+            "tool": {
+                "rair": {
+                    "default_command": "",
+                }
+            }
+        }
+
+        result = parse_rair_config(config_data)
+        assert result.default_command == ""
+
+    def test_default_command_in_rair_toml(self):
+        from rair.config import load_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / ".rair.toml"
+            config_path.write_text("""
+[rair]
+default_command = "make"
+""")
+
+            result = load_config(Path(tmpdir))
+            assert result.default_command == "make"
+
+    def test_default_command_in_pyproject_toml(self):
+        from rair.config import load_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pyproject_path = Path(tmpdir) / "pyproject.toml"
+            pyproject_path.write_text("""
+[tool.rair]
+default_command = "make"
+""")
+
+            result = load_config(Path(tmpdir))
+            assert result.default_command == "make"
+
+    def test_hierarchical_config_default_command_local_overrides_project(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            project_config = project_dir / ".rair.toml"
+            project_config.write_text("""
+[rair]
+default_command = "make"
+""")
+
+            local_config = execution_dir / ".rair.toml"
+            local_config.write_text("""
+[rair]
+default_command = "python"
+""")
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.default_command == "python"

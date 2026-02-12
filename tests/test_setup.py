@@ -76,6 +76,7 @@ class TestSetupInteractive:
                 output_patterns="results/*.json",
                 auto_discover=True,
                 output_files_in_run=False,
+                default_command="",
                 config_location="project",
             )
 
@@ -105,6 +106,7 @@ class TestSetupInteractive:
                 output_patterns="",
                 auto_discover=True,
                 output_files_in_run=False,
+                default_command="",
                 config_location="local",
             )
 
@@ -135,6 +137,7 @@ class TestSetupInteractive:
                 output_patterns="",
                 auto_discover=True,
                 output_files_in_run=False,
+                default_command="",
                 config_location="project",
             )
 
@@ -164,6 +167,7 @@ class TestSetupInteractive:
                 output_patterns="",
                 auto_discover=True,
                 output_files_in_run=False,
+                default_command="",
             )
 
             config_path = subdir / ".rair.toml"
@@ -186,6 +190,7 @@ class TestSetupInteractive:
                 output_patterns="results/*.json",
                 auto_discover=False,
                 output_files_in_run=False,
+                default_command="",
                 config_location="project",
             )
 

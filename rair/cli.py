@@ -100,8 +100,13 @@ def main(
         raise typer.Exit(0)
 
     if script_or_command is None:
-        typer.echo("Error: No script or command specified. Use --help for usage information.")
-        raise typer.Exit(1)
+        project_dir = get_toplevel()
+        file_config = load_hierarchical_config(execution_dir, project_dir, config.name if config else None)
+        if file_config.default_command:
+            script_or_command = file_config.default_command
+        else:
+            typer.echo("Error: No script or command specified. Use --help for usage information.")
+            raise typer.Exit(1)
 
     if is_script_extension(script_or_command):
         command = None
@@ -139,6 +144,7 @@ def main(
         capture_output=capture_output,
         auto_discover=merged_config.auto_discover,
         output_files_in_run=merged_config.output_files_in_run,
+        default_command=merged_config.default_command,
     )
 
     exit_code = run(script, project_dir, script_args, run_config, command, execution_dir)

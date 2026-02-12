@@ -23,6 +23,7 @@ class RairConfig:
     capture_output: bool = True
     auto_discover: bool = True
     output_files_in_run: bool = False
+    default_command: Optional[str] = None
 
 
 def find_config_file(project_dir: Path, config_name: Optional[str] = None) -> Optional[Path]:
@@ -123,6 +124,7 @@ def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
         "autodata_dir": "autodata_dir",
         "auto_discover": "auto_discover",
         "output_files_in_run": "output_files_in_run",
+        "default_command": "default_command",
     }
 
     if "tool" in config_data and "rair" in config_data["tool"]:
