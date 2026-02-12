@@ -38,7 +38,45 @@ class TestWriteConfigToFile:
             assert 'exclude = "*.tmp"' in content
             assert "auto_discover = false" in content
 
-    def test_write_config_with_empty_lists(self):
+    def test_write_config_includes_default_command_and_output_files_in_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / ".rair.toml"
+            config = RairConfig(
+                archive_dir=Path("my_archive"),
+                input_glob=["data/*.csv"],
+                output_glob=["results/*.json"],
+                exclude_glob=["*.tmp"],
+                auto_discover=False,
+                output_files_in_run=True,
+                default_command="make",
+            )
+
+            write_config_to_file(config, config_path)
+
+            assert config_path.exists()
+            content = config_path.read_text()
+            assert "[rair]" in content
+            assert 'default_command = "make"' in content
+            assert "output_files_in_run = true" in content
+
+    def test_write_config_skips_none_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / ".rair.toml"
+            config = RairConfig(
+                archive_dir=Path("archive"),
+                input_glob=[],
+                output_glob=[],
+                exclude_glob=[],
+                auto_discover=True,
+                default_command=None,
+            )
+
+            write_config_to_file(config, config_path)
+
+            assert config_path.exists()
+            content = config_path.read_text()
+            assert "[rair]" in content
+            assert "default_command" not in content
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / ".rair.toml"
             config = RairConfig(

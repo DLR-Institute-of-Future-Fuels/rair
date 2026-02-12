@@ -57,6 +57,8 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
             "output": config.output_glob,
             "exclude": config.exclude_glob,
             "auto_discover": config.auto_discover,
+            "output_files_in_run": config.output_files_in_run,
+            "default_command": config.default_command,
         }
     }
 
@@ -64,6 +66,8 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
     for section, values in config_dict.items():
         config_content += f"[{section}]\n"
         for key, value in values.items():
+            if value is None:
+                continue
             if isinstance(value, list):
                 for item in value:
                     config_content += f'{key} = "{item}"\n'
