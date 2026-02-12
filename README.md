@@ -20,7 +20,7 @@ pip install git+https://gitlab.dlr.de/krus_ni/simple_data_versioning@main
 
 ```bash
 # Run a Python script with automatic tracking of all data files
-# in the project directory
+# in the project directory (requires .rair.toml with patterns or auto-discovery)
 rair myscript.py
 
 # Run a Python script with script arguments
@@ -32,11 +32,22 @@ rair python3 mymodel.py arg1 arg2
 # The first argument can be a Python script or any arbitrary command
 rair make --all
 
-# It can be manually specified which files to track
+# Manually specify which files to track
 rair --input "data/*.csv" --output "results/*.json" myscript.py
 
 # If only input files are specified, outputs are auto-discovered
 rair --input "data/*.csv" --input parameters.txt myscript.py
+
+# Selective tracking - specify exactly which files to track
+# Use --no-auto-discover to require explicit --input and --output
+rair --no-auto-discover --input "data/*.csv" --output "results/*.json" myscript.py
+
+# Run with default command from config
+# (requires default_command setting in .rair.toml)
+cd project_with_default_command && rair --all
+
+# Create hardlinks to outputs in run folder for easy access
+rair --output-files-in-run myscript.py
 
 # Run interactive setup to configure rair for your project
 rair --setup
@@ -54,6 +65,9 @@ output_glob = ["results/*.json", "logs/*.txt"]
 exclude_glob = ["data/temp/*"]
 autodata_dir = "./data"
 capture_output = true
+auto_discover = true          # Enable auto-discovery (default)
+output_files_in_run = false   # Create hardlinks to outputs in run folder
+default_command = "make"      # Default command when no script specified
 ```
 
 **pyproject.toml:**
@@ -65,7 +79,30 @@ output = ["results/*.json", "logs/*.txt"]
 exclude = ["data/temp/*"]
 autodata_dir = "./data"
 capture_output = true
+auto_discover = true          # Enable auto-discovery
+output_files_in_run = false   # Create hardlinks to outputs in run folder
+default_command = "make"      # Default command when no script specified
 ```
+
+### Hierarchical Configuration
+
+You can have different configurations for different directories:
+
+- A `.rair.toml` in the current directory overrides project-level config
+- Use `rair --setup` in subdirectories to create local configs
+- Run `rair --setup` and choose "(c)urrent directory" or "(p)roject"
+
+Example directory structure:
+```
+project/
+├── .rair.toml              # Project config (input = ["data/*.csv"])
+└── experiments/
+    ├── .rair.toml          # Local config (input = ["*.json"]) - overrides project
+    └── train.py
+```
+
+When running `cd experiments && rair train.py`, uses `experiments/.rair.toml`.
+When running `cd project && rair train.py`, uses project `.rair.toml`.
 
 ### CLI Options
 
@@ -77,7 +114,10 @@ capture_output = true
 --archive-dir DIRECTORY    Directory for archive data (default: rairarchive)
 --autodata DIRECTORY       Directory for auto-discovering input/output files
 --capture-output/--no-capture-output
-                           Capture stdout to out.txt [default: enabled]
+                            Capture stdout to out.txt [default: enabled]
+--auto-discover/--no-auto-discover
+                            Enable/disable auto-discovery [default: enabled]
+--output-files-in-run      Create hardlinks to output files in run folder
 --setup/--no-setup         Run interactive setup dialog
 --help                     Show help message
 ```
@@ -91,6 +131,10 @@ capture_output = true
 - **Flexible configuration**: Configure via CLI, or config file `.rair.toml`, or `pyproject.toml`
 - **Output capture**: Captures stdout/stderr to a file
 - **Deduplication**: Avoids storing duplicate data files by using content hashes
+- **Selective tracking**: Use `--no-auto-discover` to require explicit `--input`/`--output`
+- **Output hardlinks**: `--output-files-in-run` creates hardlinks for easy access
+- **Default command**: Configure a default command to run when no script specified
+- **Hierarchical config**: Local configs override project settings
 
 
 ## How it works
