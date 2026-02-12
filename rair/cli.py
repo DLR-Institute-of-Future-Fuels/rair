@@ -1,5 +1,6 @@
 """CLI for rair using Typer."""
 
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -94,6 +95,8 @@ def main(
         typer.echo("Error: No script or command specified. Use --help for usage information.")
         raise typer.Exit(1)
 
+    execution_dir = Path.cwd()
+
     if is_script_extension(script_or_command):
         command = None
         script = Path(script_or_command)
@@ -130,7 +133,7 @@ def main(
         auto_discover=merged_config.auto_discover,
     )
 
-    exit_code = run(script, project_dir, script_args, run_config, command)
+    exit_code = run(script, project_dir, script_args, run_config, command, execution_dir)
 
     raise typer.Exit(code=exit_code)
 

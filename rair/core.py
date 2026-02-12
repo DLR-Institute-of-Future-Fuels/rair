@@ -67,19 +67,25 @@ def run(
     args: list[str],
     config: RairConfig,
     command_override: Optional[str] = None,
+    execution_dir: Path | None = None,
 ) -> int:
     """Run a script with data versioning.
 
     Args:
         script: Path to the script file
+        base_dir: Project root directory for file tracking and git operations
         args: Arguments to pass to the script
         config: Configuration for data versioning
         command_override: Optional command to use instead of auto-detection
+        execution_dir: Directory to run the script from (defaults to base_dir)
     """
+    if execution_dir is None:
+        execution_dir = base_dir
+
     original_cwd = os.getcwd()
 
     try:
-        os.chdir(base_dir)
+        os.chdir(execution_dir)
 
         cache_dir = base_dir / ".rair_cache"
         cache = load_cache(cache_dir)
@@ -132,7 +138,7 @@ def run(
         if config.capture_output:
             process = subprocess.Popen(
                 full_command,
-                cwd=str(base_dir),
+                cwd=str(execution_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -150,7 +156,7 @@ def run(
         else:
             result = subprocess.run(
                 full_command,
-                cwd=str(base_dir),
+                cwd=str(execution_dir),
             )
             return_code = result.returncode
             
