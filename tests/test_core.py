@@ -528,3 +528,93 @@ class TestRunInNonGitFolder:
             archive_dir = tmpdir_path / "archive"
             runs_dir = archive_dir / "runs"
             assert runs_dir.exists()
+
+
+class TestArchiveDirForExclude:
+    def test_relative_archive_dir_resolved_from_base_dir(self):
+        from rair.core import get_archive_dir_for_exclude
+        from rair.config import RairConfig
+
+        base_dir = Path("/project")
+        config = RairConfig(archive_dir=Path("rairarchive"))
+
+        result = get_archive_dir_for_exclude(base_dir, config)
+
+        assert result.is_absolute()
+        assert result.parts[-2:] == ("project", "rairarchive")
+
+    def test_absolute_archive_dir_unchanged(self):
+        from rair.core import get_archive_dir_for_exclude
+        from rair.config import RairConfig
+
+        base_dir = Path("/project")
+        config = RairConfig(archive_dir=Path("/other/archive"))
+
+        result = get_archive_dir_for_exclude(base_dir, config)
+
+        assert result.is_absolute()
+        assert result.parts[-2:] == ("other", "archive")
+
+    def test_nested_relative_archive_dir(self):
+        from rair.core import get_archive_dir_for_exclude
+        from rair.config import RairConfig
+
+        base_dir = Path("/project")
+        config = RairConfig(archive_dir=Path("data/archives"))
+
+        result = get_archive_dir_for_exclude(base_dir, config)
+
+        assert result.is_absolute()
+        assert result.parts[-3:] == ("project", "data", "archives")
+
+
+class TestAutoDetectArchiveExclusion:
+    def test_excludes_archive_dir_files(self):
+        from rair.auto_detect import get_auto_discover_candidates
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            archive_dir = base_dir / "rairarchive"
+            archive_dir.mkdir()
+
+            test_file = archive_dir / "test.txt"
+            test_file.write_text("test")
+
+            result = get_auto_discover_candidates(base_dir, [], archive_dir)
+
+            assert test_file not in result
+            assert len(result) == 0
+
+    def test_excludes_files_in_archive_subdirs(self):
+        from rair.auto_detect import get_auto_discover_candidates
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            archive_dir = base_dir / "rairarchive"
+            archive_dir.mkdir()
+            runs_dir = archive_dir / "runs"
+            runs_dir.mkdir()
+
+            test_file = runs_dir / "info.md"
+            test_file.write_text("test")
+
+            result = get_auto_discover_candidates(base_dir, [], archive_dir)
+
+            assert test_file not in result
+            assert len(result) == 0
+
+    def test_does_not_exclude_project_files(self):
+        from rair.auto_detect import get_auto_discover_candidates
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            archive_dir = base_dir / "rairarchive"
+            archive_dir.mkdir()
+
+            project_file = base_dir / "data.txt"
+            project_file.write_text("project data")
+
+            result = get_auto_discover_candidates(base_dir, [], archive_dir)
+
+            assert project_file in result
+            assert len(result) == 1

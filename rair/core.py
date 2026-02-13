@@ -24,6 +24,25 @@ from .auto_detect import (
 )
 
 
+def get_archive_dir_for_exclude(base_dir: Path, config: RairConfig) -> Path:
+    """Get the archive directory path for exclusion in auto-discovery.
+
+    Handles both absolute and relative paths correctly, resolving relative paths
+    from the base_dir (project root) rather than the current working directory.
+
+    Args:
+        base_dir: The project directory
+        config: RairConfig with archive_dir setting
+
+    Returns:
+        Resolved absolute Path to the archive directory
+    """
+    if config.archive_dir.is_absolute():
+        return config.archive_dir.resolve()
+    else:
+        return (base_dir / config.archive_dir).resolve()
+
+
 def should_use_auto_discovery_for_input(config: RairConfig) -> bool:
     """Check if auto-discovery should be used for input files."""
     return (config.auto_discover and
@@ -97,7 +116,8 @@ def run(
 
         if should_use_auto_discovery_for_input(config) or should_use_auto_discovery_for_output(config):
             tracked_files = get_tracked_files(base_dir)
-            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, config.archive_dir.absolute())
+            archive_dir_for_exclude = get_archive_dir_for_exclude(base_dir, config)
+            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, archive_dir_for_exclude)
             if should_use_auto_discovery_for_output(config):
                 before_hashes = get_file_hash_map(candidates)
 
@@ -164,7 +184,8 @@ def run(
         execution_time = end_time - start_time
 
         if should_use_auto_discovery_for_output(config):
-            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, config.archive_dir.absolute())
+            archive_dir_for_exclude = get_archive_dir_for_exclude(base_dir, config)
+            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, archive_dir_for_exclude)
             after_hashes = get_file_hash_map(candidates)
             output_files = categorize_files_by_changes(before_hashes, after_hashes)
         else:

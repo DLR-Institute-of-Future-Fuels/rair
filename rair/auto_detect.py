@@ -93,6 +93,7 @@ def get_auto_discover_candidates(
     Args:
         base_dir: Directory to search in
         exclude: List of files and glob patterns to exclude
+        archive_dir: Archive directory to exclude
 
     Returns:
         List of files that are candidates for auto-discovery
@@ -121,8 +122,11 @@ def get_auto_discover_candidates(
             if is_in_hidden_directory(item, base_dir):
                 continue
 
-            if archive_dir in item.parents:
+            try:
+                item.relative_to(archive_dir)
                 continue
+            except ValueError:
+                pass
 
             if item in excluded_files:
                 continue
