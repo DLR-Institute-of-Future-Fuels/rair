@@ -89,6 +89,14 @@ def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_m
         config: RairConfig instance to update
         field_map: Mapping of TOML field names to config field names
     """
+    import sys
+    
+    known_fields = set(field_map.keys())
+    unknown_fields = set(rair_config.keys()) - known_fields
+    
+    for unknown in unknown_fields:
+        print(f"[WARNING] Unknown config setting '{unknown}' in config file", file=sys.stderr)
+    
     for toml_field, config_field in field_map.items():
         if toml_field in rair_config:
             val = rair_config[toml_field]

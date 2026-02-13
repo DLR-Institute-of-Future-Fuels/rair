@@ -665,3 +665,61 @@ default_command = "python"
 
             result = load_hierarchical_config(execution_dir, project_dir)
             assert result.default_command == "python"
+
+
+class TestUnknownConfigWarning:
+    def test_warns_about_unknown_settings(self, capsys):
+        from rair.config import parse_rair_config
+        import sys
+        
+        config_data = {
+            "tool": {
+                "rair": {
+                    "archive_dir": "archive",
+                    "unknow_setting": "value",
+                    "anothe_typo": 123,
+                }
+            }
+        }
+        
+        result = parse_rair_config(config_data)
+        
+        captured = capsys.readouterr()
+        assert "[WARNING] Unknown config setting 'unknow_setting' in config file" in captured.err
+        assert "[WARNING] Unknown config setting 'anothe_typo' in config file" in captured.err
+        assert result.archive_dir == Path("archive")
+        
+    def test_no_warning_for_known_settings(self, capsys):
+        from rair.config import parse_rair_config
+        
+        config_data = {
+            "tool": {
+                "rair": {
+                    "archive_dir": "archive",
+                    "input": ["data/*.csv"],
+                    "output": ["results/*.json"],
+                    "auto_discover": True,
+                }
+            }
+        }
+        
+        result = parse_rair_config(config_data)
+        
+        captured = capsys.readouterr()
+        assert "WARNING" not in captured.err
+        assert captured.err == ""
+        
+    def test_warns_in_flat_rair_section(self, capsys):
+        from rair.config import parse_rair_config
+        
+        config_data = {
+            "rair": {
+                "archive_dir": "archive",
+                "typo_setting": "test",
+            }
+        }
+        
+        result = parse_rair_config(config_data)
+        
+        captured = capsys.readouterr()
+        assert "[WARNING] Unknown config setting 'typo_setting' in config file" in captured.err
