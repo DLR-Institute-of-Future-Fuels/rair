@@ -118,7 +118,7 @@ When running `cd project && rair train.py`, uses project `.rair.toml`.
 --auto-discover/--no-auto-discover
                             Enable/disable auto-discovery [default: enabled]
 --output-files-in-run      Create hardlinks to output files in run folder
---setup/--no-setup         Run interactive setup dialog
+--setup                    Run interactive setup dialog
 --help                     Show help message
 ```
 
