@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from .hashing import compute_file_hash
 from .models import FileSnapshot, GitInfo, TrackedFile
-from typing import Any
+from typing import Any, Optional
 
 def get_unique_data_path(data_dir: Path, file_hash: str, original_name: str) -> Path:
     """Get the path for a unique data file, deduplicated by hash."""
@@ -353,7 +353,7 @@ def create_run_info(
     script_output: str | None = None,
     combined_hash: str = "",
     execution_time: float = 0,
-    output_files_in_run: bool = False,
+    output_files_in_run: Optional[bool] = None,
 ) -> None:
     """Create a complete run with all data archived and info written."""
     run_dir = create_run_directory(archive_dir, run_id)

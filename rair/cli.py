@@ -64,16 +64,16 @@ def main(
         dir_okay=True,
         resolve_path=True,
     ),
-    capture_output: bool = Option(
-        default=True,
+    capture_output: Optional[bool] = Option(
+        default=None,
         help="Capture and save script output to out.txt",
     ),
-    auto_discover: bool = Option(
-        default=True,
+    auto_discover: Optional[bool] = Option(
+        default=None,
         help="Enable auto-discovery when --input/--output not specified",
     ),
-    output_files_in_run: bool = Option(
-        default=False,
+    output_files_in_run: Optional[bool] = Option(
+        default=None,
         help="Create hardlinks to output files in the run folder",
     ),
     setup: bool = Option(

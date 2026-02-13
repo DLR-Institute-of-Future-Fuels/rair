@@ -22,7 +22,7 @@ class RairConfig:
     autodata_dir: Optional[Path] = None
     capture_output: bool = True
     auto_discover: bool = True
-    output_files_in_run: bool = False
+    output_files_in_run: bool = True
     default_command: Optional[str] = None
 
 

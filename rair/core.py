@@ -45,14 +45,14 @@ def get_archive_dir_for_exclude(base_dir: Path, config: RairConfig) -> Path:
 
 def should_use_auto_discovery_for_input(config: RairConfig) -> bool:
     """Check if auto-discovery should be used for input files."""
-    return (config.auto_discover and
+    return (config.auto_discover is not False and
             not config.input_glob and
             config.autodata_dir is not None)
 
 
 def should_use_auto_discovery_for_output(config: RairConfig) -> bool:
     """Check if auto-discovery should be used for output files."""
-    return (config.auto_discover and
+    return (config.auto_discover is not False and
             not config.output_glob and
             config.autodata_dir is not None)
 
@@ -155,7 +155,7 @@ def run(
         # Time the script execution
         start_time = time.time()
         
-        if config.capture_output:
+        if config.capture_output is not False:
             process = subprocess.Popen(
                 full_command,
                 cwd=str(execution_dir),
