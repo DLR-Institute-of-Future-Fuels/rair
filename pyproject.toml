@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rair"
 version = "0.1.0"
-description = "Simple data versioning for Python experiments"
+description = "Simple data versioning"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [

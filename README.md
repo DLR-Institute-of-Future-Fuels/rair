@@ -1,26 +1,41 @@
 # Rair - Research Archival & Integrity Recorder
+Disclaimer: Do not use in production yet. This project is early on. Please test it and provide your feedback.
 
-This is an Python package for data versioning.
+Rair is a CLI-tool for simple data versioning.
 
 When running experiments, model parameters and model details needs to be tweaked
 frequently. Committing minimal changes clutters the git history and makes it hard to track
 actual model modifications. This package allows to link modeling results to exact code versions
 without the need to commit all changes to git. Therefore it archives code diffs alongside the git commit
-reference. It tacks input and intermediate data as well to guarantee full reproducibility for every run.
+reference. It tracks input and intermediate data as well to guarantee full reproducibility for every run.
 
 Using heuristics, Rair can be used in many scenarios without any manual configuration.
+
+## Features
+
+- **Auto-discovery**: Automatically discover input/output files using hash-based change detection for outputs
+- **Hash caching**: Cache hash calculations in `.rair_cache/` for fast operation on large data files
+- **Git diff tracking**: Track uncommitted changes alongside git commits
+- **Archive format**: Human-readable markdown and machine-readable JSON
+- **Flexible configuration**: Configure via CLI, or config file `.rair.toml`, or `pyproject.toml`
+- **Output capture**: Captures stdout/stderr to a file
+- **Deduplication**: Avoids storing duplicate data files by using content hashes
+- **Selective tracking**: Use `--no-auto-discover` to require explicit `--input`/`--output`
+- **Output hardlinks**: `--output-files-in-run` creates hardlinks for easy access
+- **Default command**: Configure a default command to run when no script specified
+- **Hierarchical config**: Local configs override project settings
 
 ## Installation
 
 ```bash
-pip install git+https://gitlab.dlr.de/krus_ni/simple_data_versioning@main
+pip install git+https://github.com/DLR-Institute-of-Future-Fuels/rair@main
 ```
 
 ## How to use
 
 ```bash
 # Run a Python script with automatic tracking of all data files
-# in the project directory (requires .rair.toml with patterns or auto-discovery)
+# in the project directory
 rair myscript.py
 
 # Run a Python script with script arguments
@@ -101,8 +116,8 @@ project/
     └── train.py
 ```
 
-When running `cd experiments && rair train.py`, uses `experiments/.rair.toml`.
-When running `cd project && rair train.py`, uses project `.rair.toml`.
+When running `cd experiments && rair train.py`, it uses `experiments/.rair.toml`.
+When running `cd project && rair train.py`, it uses project `.rair.toml`.
 
 ### CLI Options
 
@@ -121,20 +136,6 @@ When running `cd project && rair train.py`, uses project `.rair.toml`.
 --setup                    Run interactive setup dialog
 --help                     Show help message
 ```
-
-### Features
-
-- **Auto-discovery**: Automatically discover input/output files using hash-based change detection for outputs
-- **Hash caching**: Cache hash calculations in `.rair_cache/` for fast operation on large data files
-- **Git diff tracking**: Track uncommitted changes alongside git commits
-- **Archive format**: Human-readable markdown and machine-readable JSON
-- **Flexible configuration**: Configure via CLI, or config file `.rair.toml`, or `pyproject.toml`
-- **Output capture**: Captures stdout/stderr to a file
-- **Deduplication**: Avoids storing duplicate data files by using content hashes
-- **Selective tracking**: Use `--no-auto-discover` to require explicit `--input`/`--output`
-- **Output hardlinks**: `--output-files-in-run` creates hardlinks for easy access
-- **Default command**: Configure a default command to run when no script specified
-- **Hierarchical config**: Local configs override project settings
 
 
 ## How it works
