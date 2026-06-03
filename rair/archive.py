@@ -77,8 +77,7 @@ def compute_combined_hash(git_hash: str, diff_hash: str, input_hashes: list[str]
     """
     combined = git_hash + diff_hash + "".join(sorted(input_hashes))
     full_hash = hashlib.sha256(combined.encode()).hexdigest()
-    short_hash = full_hash[:8]
-    return (full_hash, short_hash)
+    return (full_hash, full_hash[:8])
 
 
 def create_run_directory(archive_dir: Path, run_id: str) -> Path:
@@ -187,6 +186,7 @@ def write_run_info(
         f.write(f"- Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"- Execution time: {execution_time:.3f} s\n")
         f.write(f"- Command: `{display_script}`\n")
+        f.write(f"- Run hash: `{combined_hash}`\n")
         f.write("\n")
 
         f.write("## Git Information\n\n")
@@ -194,10 +194,9 @@ def write_run_info(
             f.write(f"- Commit: [{git_info.commit_hash[:8]}]({gitlab_link})\n")
         else:
             f.write(f"- Commit: `{git_info.commit_hash}`\n")
-        f.write(f"- Short hash: `{git_info.short_hash}`\n")
+        f.write(f"- Short git hash: `{git_info.short_hash}`\n")
         f.write(f"- Branch: `{git_info.branch}`\n")
         f.write(f"- Tracking URL: `{git_info.tracking_url}`\n")
-        f.write(f"- Combined hash: `{combined_hash}`\n")
 
         if git_info.diff:
             compressed = compress_diff(git_info.diff)
