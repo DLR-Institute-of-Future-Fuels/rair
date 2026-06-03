@@ -1,15 +1,88 @@
 # Rair - Research Archival & Integrity Recorder
-Disclaimer: Do not use in production yet. This project is early on. Please test it and provide your feedback.
 
 Rair is a CLI-tool for simple data versioning.
 
 When running experiments, model parameters and model details needs to be tweaked
 frequently. Committing minimal changes clutters the git history and makes it hard to track
-actual model modifications. This package allows to link modeling results to exact code versions
-without the need to commit all changes to git. Therefore it archives code diffs alongside the git commit
+actual program modifications. Rair allows to link computation results to exact code versions
+without the need to commit all changes to git. Therefore it stores code diffs alongside the git commit
 reference. It tracks input and intermediate data as well to guarantee full reproducibility for every run.
 
 Using heuristics, Rair can be used in many scenarios without any manual configuration.
+
+## Usage example
+
+Suppose you have a simple script `mymodel.py` committed to git, looking like this:
+
+```python
+import time
+
+print('Test text output to stdio')
+p1 = 5.9
+p2 = 9.5
+
+with open("test_result.txt", "w") as f:
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    f.write(f"Current time: {current_time}\n")
+    f.write(f"result = {p1 + p2}\n")
+```
+
+You tune some parameters (here `p1` and `p2`) without committing the changes to git.
+
+Now you run your script like this:
+
+```bash
+rair mymodel.py
+```
+
+Rair runs the script and creates an archive with the following structure:
+
+```
+rairarchive/
+├── data/
+│   └── 9157ce88256e95668977_test_result.txt  # deduplicated data file
+└── runs/
+    └── 20260603-001-023aa51f/
+        ├── info.md          # human-readable run overview
+        ├── run.json         # machine-readable run metadata
+        ├── out.txt          # captured stdout/stderr
+        ├── git_diff.patch   # uncommitted changes (patch format)
+        └── test_result.txt  # output file (hardlink)
+```
+
+The file `info.md` gives an overview of the run:
+
+```markdown
+# Run Information
+- Start time: 2026-06-03 11:53:09
+- Execution time: 0.185 s
+- Command: `python mymodel.py`
+- Run hash: `023aa51fa4981ebe097f2045947d2108cff014c42332d5f6ef5a9d71cbf5273b`
+
+## Git Information
+- Commit: `95aa8c491f8a3e5c44890ea3c6616e123692c4cd`
+- Short git hash: `95aa8c4`
+- Branch: `main`
+- Tracking URL: `no-upstream`
+
+## Uncommitted Changes
+in mymodel.py:
+p1 = 7.1
+p2 = 3.3
+
+## Output Files
+- `test_result.txt` -> `rairarchive/data/9157ce88256e95668977_test_result.txt` (hash: `9157ce88`)
+```
+
+The "Run hash" captures the git hash, code diff, command line parameters and input file content.
+
+## Install
+
+Rair can be installed with pip. Its tested on Windows and Unix:
+
+```bash
+pip install rair
+```
 
 ## Features
 
@@ -25,13 +98,7 @@ Using heuristics, Rair can be used in many scenarios without any manual configur
 - **Default command**: Configure a default command to run when no script specified
 - **Hierarchical config**: Local configs override project settings
 
-## Installation
-
-```bash
-pip install git+https://github.com/DLR-Institute-of-Future-Fuels/rair@main
-```
-
-## How to use
+## Running Rair
 
 ```bash
 # Run a Python script with automatic tracking of all data files
@@ -57,20 +124,33 @@ rair --input "data/*.csv" --input parameters.txt myscript.py
 # Use --no-auto-discover to require explicit --input and --output
 rair --no-auto-discover --input "data/*.csv" --output "results/*.json" myscript.py
 
-# Run with default command from config
-# (requires default_command setting in .rair.toml)
-cd project_with_default_command && rair --all
-
-# Create hardlinks to outputs in run folder for easy access
-rair --output-files-in-run myscript.py
-
-# Run interactive setup to configure rair for your project
-rair --setup
+# Run the default command set in config file and add
+# a comment that is stored with the results
+rair --comment "experiment 1"
 ```
 
-### Configuration
+### All CLI flags
 
-In alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`.
+```
+--config FILE              Path to config file
+--input TEXT               Glob pattern for input files to track
+--output TEXT              Glob pattern for output files to track
+--exclude TEXT             Glob pattern to exclude from tracking
+--archive-dir DIRECTORY    Directory for archive data (default: rairarchive)
+--autodata DIRECTORY       Directory for auto-discovering input/output files
+--capture-output/--no-capture-output
+                            Capture stdout to out.txt [default: enabled]
+--auto-discover/--no-auto-discover
+                            Enable/disable auto-discovery [default: enabled]
+--output-files-in-run      Create hardlinks to output files in run folder
+--comment TEXT             Add a comment to the run
+--setup                    Run interactive setup dialog
+--help                     Show help message
+```
+
+## Configuration
+
+As alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`:
 
 **.rair.toml:**
 ```toml
@@ -110,83 +190,42 @@ You can have different configurations for different directories:
 Example directory structure:
 ```
 project/
-├── .rair.toml              # Project config (input = ["data/*.csv"])
+├── .rair.toml          # Project config
 └── experiments/
-    ├── .rair.toml          # Local config (input = ["*.json"]) - overrides project
+    ├── .rair.toml      # Pverrides project config
     └── train.py
 ```
 
-When running `cd experiments && rair train.py`, it uses `experiments/.rair.toml`.
-When running `cd project && rair train.py`, it uses project `.rair.toml`.
+## Developer Guide
 
-### CLI Options
+Feedback and contributions are welcome - please open an issue or submit a pull request on GitHub.
 
-```
---config FILE              Path to config file
---input TEXT               Glob pattern for input files to track
---output TEXT              Glob pattern for output files to track
---exclude TEXT             Glob pattern to exclude from tracking
---archive-dir DIRECTORY    Directory for archive data (default: rairarchive)
---autodata DIRECTORY       Directory for auto-discovering input/output files
---capture-output/--no-capture-output
-                            Capture stdout to out.txt [default: enabled]
---auto-discover/--no-auto-discover
-                            Enable/disable auto-discovery [default: enabled]
---output-files-in-run      Create hardlinks to output files in run folder
---setup                    Run interactive setup dialog
---help                     Show help message
-```
+To get started with development, first clone the repository:
 
-
-## How it works
-
-For each run of an experiment, rair creates a new result directory that contains the data files as well as an info file with the git commit reference and the diff with uncommitted changes if there are any.
-
-A diff of the uncommitted changes can look for example like this:
-```diff
-diff --git a/my_model.py b/my_model.py
-index 3bfb495..97ab218 100644
---- a/my_model.py
-+++ b/my_model.py
-@@ -1,7 +1,7 @@
--p1 = 5.5
--p2 = 9.5
-+p1 = 5.0
-+p2 = 9.8
-```
-
-The info.md file stored for each run includes:
----
-# Data information
-
-- Run time: 2026-01-06 15:45:10
-- Git hash: [44ec730d0855ac96f435633649e016c56a60cc7e](https://gitlab.dlr.de/krus_ni/simple_data_versioning/-/tree/44ec730d0855ac96f435633649e016c56a60cc7e)
-- Git hash short: `44ec730`
-- Branch name: `main`
-- Tracking branch URL: `https://gitlab.dlr.de/krus_ni/simple_data_versioning.git`
-- No uncommitted changes
----
-
-### Directory Structure
-
-The structure of the created result directory can look like this:
-```
-rairarchive/runs/
-    20260124-001-ee207dee/
-        git_diff.patch
-        info.md
-        run.json
-        out.txt
-    20260124-002-44ec730/
-        info.md
-        run.json
-        out.txt
-```
-
-### Restoring Versions
-
-To restore the version a file was created with, the following commands can be used:
 ```bash
-git checkout 44ec730
-git apply rairarchive/20260124-001-ee207dee/git_diff.patch
+git clone https://github.com/DLR-Institute-of-Future-Fuels/rair.git
+cd rair
 ```
+
+You may set up a virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: `.venv\Scripts\activate`
+```
+
+Build and install the package and dev dependencies:
+
+```bash
+pip install -e .[dev]
+```
+
+Run the tests:
+
+```bash
+pytest
+```
+
+## License
+
+This project is licensed under the MIT license - see the [LICENSE](LICENSE) file for details.
