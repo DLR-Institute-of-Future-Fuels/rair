@@ -1,5 +1,4 @@
 # Rair - Research Archival & Integrity Recorder
-
 Rair is a CLI-tool for simple data versioning.
 
 When running experiments, model parameters and model details needs to be tweaked
@@ -11,7 +10,6 @@ reference. It tracks input and intermediate data as well to guarantee full repro
 Using heuristics, Rair can be used in many scenarios without any manual configuration.
 
 ## Usage example
-
 Suppose you have a simple script `mymodel.py` committed to git, looking like this:
 
 ```python
@@ -77,7 +75,6 @@ p2 = 3.3
 The "Run hash" captures the git hash, code diff, command line parameters and input file content.
 
 ## Install
-
 Rair can be installed with pip. Its tested on Windows and Unix:
 
 ```bash
@@ -85,21 +82,14 @@ pip install rair
 ```
 
 ## Features
-
-- **Auto-discovery**: Automatically discover input/output files using hash-based change detection for outputs
-- **Hash caching**: Cache hash calculations in `.rair_cache/` for fast operation on large data files
 - **Git diff tracking**: Track uncommitted changes alongside git commits
-- **Archive format**: Human-readable markdown and machine-readable JSON
-- **Flexible configuration**: Configure via CLI, or config file `.rair.toml`, or `pyproject.toml`
 - **Output capture**: Captures stdout/stderr to a file
-- **Deduplication**: Avoids storing duplicate data files by using content hashes
-- **Selective tracking**: Use `--no-auto-discover` to require explicit `--input`/`--output`
-- **Output hardlinks**: `--output-files-in-run` creates hardlinks for easy access
-- **Default command**: Configure a default command to run when no script specified
-- **Hierarchical config**: Local configs override project settings
+- **Metadata format**: Human-readable markdown and machine-readable JSON
+- **Auto-discovery**: Automatically discover input/output files using hash-based change detection for outputs
+- **Deduplication**: Avoids storing duplicate data files by using file hashes
+- **Flexible configuration**: Configure via CLI, or config file `.rair.toml`, or `pyproject.toml`
 
 ## Running Rair
-
 ```bash
 # Run a Python script with automatic tracking of all data files
 # in the project directory
@@ -120,17 +110,18 @@ rair --input "data/*.csv" --output "results/*.json" myscript.py
 # If only input files are specified, outputs are auto-discovered
 rair --input "data/*.csv" --input parameters.txt myscript.py
 
-# Selective tracking - specify exactly which files to track
-# Use --no-auto-discover to require explicit --input and --output
-rair --no-auto-discover --input "data/*.csv" --output "results/*.json" myscript.py
+# Auto-discovery of files can be disabled
+rair --no-auto-discover --output "results/*.json" myscript.py
 
-# Run the default command set in config file and add
+# Run the default command specified in the config file and add
 # a comment that is stored with the results
 rair --comment "experiment 1"
 ```
 
-### All CLI flags
+### Automatic data file tracking
+By default Rair will track all files in the project directory that are not tracked by git as input data files. Output files are discovered by comparing file hashes before and after the run. This allows to track all relevant files without the need to specify them manually. File hashes are cached in `.rair_cache/` and are recalculated for files with a changed modification time.
 
+### All CLI flags
 ```
 --config FILE              Path to config file
 --input TEXT               Glob pattern for input files to track
@@ -149,7 +140,6 @@ rair --comment "experiment 1"
 ```
 
 ## Configuration
-
 As alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`:
 
 **.rair.toml:**
@@ -180,7 +170,6 @@ default_command = "make"      # Default command when no script specified
 ```
 
 ### Hierarchical Configuration
-
 You can have different configurations for different directories:
 
 - A `.rair.toml` in the current directory overrides project-level config
@@ -197,7 +186,6 @@ project/
 ```
 
 ## Developer Guide
-
 Feedback and contributions are welcome - please open an issue or submit a pull request on GitHub.
 
 To get started with development, first clone the repository:
@@ -227,5 +215,4 @@ pytest
 ```
 
 ## License
-
 This project is licensed under the MIT license - see the [LICENSE](LICENSE) file for details.
