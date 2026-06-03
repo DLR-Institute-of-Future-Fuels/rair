@@ -166,7 +166,8 @@ def write_run_info(
     output_files: list[TrackedFile],
     archived_files: dict[str, Path],
     combined_hash: str,
-    execution_time: float
+    execution_time: float,
+    comment: str,
 ) -> None:
     """Write the info.md file for a run."""
     gitlab_link = get_gitlab_link(git_info.tracking_url, git_info.commit_hash)
@@ -181,9 +182,12 @@ def write_run_info(
 
     with open(run_dir / "info.md", "w") as f:
         f.write("# Run Information\n\n")
+        if comment:
+            f.write(f"- Comment: {comment}\n")
         f.write(f"- Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"- Execution time: {execution_time:.3f} s\n")
-        f.write(f"- Command: `{display_script}`\n\n")
+        f.write(f"- Command: `{display_script}`\n")
+        f.write("\n")
 
         f.write("## Git Information\n\n")
         if gitlab_link:
@@ -222,17 +226,19 @@ def write_run_info(
                 f.write(f"git apply {diff_path_display}\n")
                 f.write("```")
 
-        f.write("\n## Input Files\n\n")
-        for tracked in sorted(input_files, key=lambda x: str(x.path)):
-            path_str = str(tracked.path)
-            archived_path = archived_files.get(path_str)
-            f.write(f"- {_format_file_for_display(project_dir, archive_dir, tracked, archived_path)}\n")
+        if input_files:
+            f.write("\n## Input Files\n\n")
+            for tracked in sorted(input_files, key=lambda x: str(x.path)):
+                path_str = str(tracked.path)
+                archived_path = archived_files.get(path_str)
+                f.write(f"- {_format_file_for_display(project_dir, archive_dir, tracked, archived_path)}\n")
 
-        f.write("\n## Output Files\n\n")
-        for tracked in sorted(output_files, key=lambda x: str(x.path)):
-            path_str = str(tracked.path)
-            archived_path = archived_files.get(path_str)
-            f.write(f"- {_format_file_for_display(project_dir, archive_dir, tracked, archived_path)}\n")
+        if output_files:
+            f.write("\n## Output Files\n\n")
+            for tracked in sorted(output_files, key=lambda x: str(x.path)):
+                path_str = str(tracked.path)
+                archived_path = archived_files.get(path_str)
+                f.write(f"- {_format_file_for_display(project_dir, archive_dir, tracked, archived_path)}\n")
 
 
 def _format_file_for_json(
@@ -261,7 +267,8 @@ def write_run_json(
     archived_files: dict[str, Path],
     has_output: bool = False,
     combined_hash: str = "",
-    execution_time: float = 0
+    execution_time: float = 0,
+    comment: str = "",
 ) -> None:
     """Write the run.json file for a run."""
     run_data: dict[str, Any] = {
@@ -287,6 +294,7 @@ def write_run_json(
             for f in sorted(output_files, key=lambda x: str(x.path))
         ],
         "has_output": has_output,
+        "comment": comment
     }
 
     with open(run_dir / "run.json", "w") as f:
@@ -354,6 +362,7 @@ def create_run_info(
     combined_hash: str = "",
     execution_time: float = 0,
     output_files_in_run: Optional[bool] = None,
+    comment: str = "",
 ) -> None:
     """Create a complete run with all data archived and info written."""
     run_dir = create_run_directory(archive_dir, run_id)
@@ -375,7 +384,8 @@ def create_run_info(
         list(output_snapshot.files.values()),
         archived_files,
         combined_hash,
-        execution_time
+        execution_time,
+        comment,
     )
 
     has_output = script_output is not None and script_output != ""
@@ -394,5 +404,6 @@ def create_run_info(
         archived_files,
         has_output,
         combined_hash,
-        execution_time
+        execution_time,
+        comment,
     )

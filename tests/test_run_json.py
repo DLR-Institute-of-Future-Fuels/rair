@@ -249,3 +249,88 @@ class TestWriteRunJson:
             assert data["command"] == ["script.py"]
             assert data["input_files"][0]["path"] == (project_dir / "data/input.txt").as_posix()
             assert data["input_files"][0]["archived_path"] == (archive_dir / "data" / "hash1_input.txt").as_posix()
+
+    def test_json_with_comment(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            project_dir = Path(tmpdir)
+            archive_dir = project_dir / "archive"
+            archive_dir.mkdir()
+
+            git_info = GitInfo(
+                commit_hash="abc123",
+                short_hash="abc",
+                branch="main",
+                diff="",
+                diff_hash="",
+                tracking_url="https://github.com",
+            )
+            input_files: list[TrackedFile] = []
+            output_files: list[TrackedFile] = []
+            archived_files: dict[str, Path] = {}
+
+            write_run_json(
+                run_dir,
+                ["script.py"],
+                project_dir,
+                archive_dir,
+                git_info,
+                input_files,
+                output_files,
+                archived_files,
+                comment="My test comment",
+                has_output=False,
+                combined_hash="",
+                execution_time=0.0,
+            )
+
+            json_path = run_dir / "run.json"
+            assert json_path.exists()
+
+            with open(json_path) as f:
+                data = json.load(f)
+
+            assert "comment" in data
+            assert data["comment"] == "My test comment"
+
+    def test_json_without_comment(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            project_dir = Path(tmpdir)
+            archive_dir = project_dir / "archive"
+            archive_dir.mkdir()
+
+            git_info = GitInfo(
+                commit_hash="abc123",
+                short_hash="abc",
+                branch="main",
+                diff="",
+                diff_hash="",
+                tracking_url="https://github.com",
+            )
+            input_files: list[TrackedFile] = []
+            output_files: list[TrackedFile] = []
+            archived_files: dict[str, Path] = {}
+
+            write_run_json(
+                run_dir,
+                ["script.py"],
+                project_dir,
+                archive_dir,
+                git_info,
+                input_files,
+                output_files,
+                archived_files,
+                has_output=False,
+                combined_hash="",
+                execution_time=0.0,
+            )
+
+            json_path = run_dir / "run.json"
+            assert json_path.exists()
+
+            with open(json_path) as f:
+                data = json.load(f)
+
+            assert "comment" in data
+            assert data["comment"] == ""

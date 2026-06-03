@@ -175,6 +175,7 @@ class TestWriteRunInfo:
                 archived_files,
                 combined_hash,
                 execution_time=0.0,
+                comment="",
             )
 
             info_path = run_dir / "info.md"
@@ -184,6 +185,46 @@ class TestWriteRunInfo:
             assert "input.txt" in content
             assert "output.txt" in content
             assert "->" in content
+
+    def test_write_info_with_comment(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            project_dir = Path(tmpdir)
+            archive_dir = project_dir / "archive"
+            archive_dir.mkdir()
+            git_info = GitInfo(
+                commit_hash="abc123",
+                short_hash="abc",
+                branch="main",
+                diff="",
+                diff_hash="",
+                tracking_url="https://github.com",
+            )
+            input_files: list[TrackedFile] = []
+            output_files: list[TrackedFile] = []
+            archived_files: dict[str, Path] = {}
+
+            from rair.archive import compute_combined_hash
+            combined_hash, _ = compute_combined_hash("abc123", "", [])
+
+            write_run_info(
+                run_dir,
+                ["script.py"],
+                project_dir,
+                archive_dir,
+                git_info,
+                input_files,
+                output_files,
+                archived_files,
+                combined_hash,
+                execution_time=0.0,
+                comment="Test comment for this run",
+            )
+
+            info_path = run_dir / "info.md"
+            assert info_path.exists()
+            content = info_path.read_text()
+            assert "Comment: Test comment for this run" in content
 
 
 class TestCompressDiff:

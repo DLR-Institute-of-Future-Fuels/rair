@@ -24,6 +24,7 @@ class RairConfig:
     auto_discover: bool = True
     output_files_in_run: bool = True
     default_command: Optional[str] = None
+    comment: Optional[str] = None
 
 
 def find_config_file(project_dir: Path, config_name: Optional[str] = None) -> Optional[Path]:
@@ -211,6 +212,7 @@ def merge_config_with_cli(
     cli_exclude: Optional[list[str]],
     cli_archive_dir: Optional[Path],
     cli_autodata: Optional[Path] = None,
+    cli_capture_output: Optional[bool] = None,
     cli_auto_discover: Optional[bool] = None,
     cli_output_files_in_run: Optional[bool] = None,
 ) -> RairConfig:
@@ -227,6 +229,7 @@ def merge_config_with_cli(
         cli_autodata: CLI --autodata value
         cli_auto_discover: CLI --no-auto-discover value
         cli_output_files_in_run: CLI --output-files-in-run value
+        cli_comment: CLI --comment value
 
     Returns:
         Merged RairConfig
@@ -245,6 +248,9 @@ def merge_config_with_cli(
 
     if cli_autodata is not None:
         config.autodata_dir = cli_autodata
+
+    if cli_capture_output is not None:
+        config.capture_output = cli_capture_output
 
     if cli_auto_discover is not None:
         config.auto_discover = cli_auto_discover

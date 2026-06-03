@@ -76,6 +76,10 @@ def main(
         default=None,
         help="Create hardlinks to output files in the run folder",
     ),
+    comment: Optional[str] = Option(
+        default="",
+        help="Add a comment to info.md and run.json",
+    ),
     setup: bool = Option(
         default=False,
         help="Run interactive setup dialog",
@@ -141,10 +145,11 @@ def main(
         exclude_glob=merged_config.exclude_glob,
         archive_dir=merged_config.archive_dir,
         autodata_dir=merged_config.autodata_dir,
-        capture_output=capture_output,
+        capture_output=merged_config.capture_output,
         auto_discover=merged_config.auto_discover,
         output_files_in_run=merged_config.output_files_in_run,
         default_command=merged_config.default_command,
+        comment=comment,
     )
 
     exit_code = run(script, project_dir, script_args, run_config, command, execution_dir)
