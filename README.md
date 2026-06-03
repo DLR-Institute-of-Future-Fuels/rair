@@ -1,19 +1,18 @@
 # Rair - Research Archival & Integrity Recorder
-Disclaimer: Do not use in production yet. This project is early on. Please test it and provide your feedback.
 
 Rair is a CLI-tool for simple data versioning.
 
 When running experiments, model parameters and model details needs to be tweaked
 frequently. Committing minimal changes clutters the git history and makes it hard to track
-actual model modifications. This package allows to link modeling results to exact code versions
-without the need to commit all changes to git. Therefore it archives code diffs alongside the git commit
+actual program modifications. Rair allows to link computation results to exact code versions
+without the need to commit all changes to git. Therefore it stores code diffs alongside the git commit
 reference. It tracks input and intermediate data as well to guarantee full reproducibility for every run.
 
 Using heuristics, Rair can be used in many scenarios without any manual configuration.
 
 ## Usage example
 
-Suppose you have a simple script `mymodel.py` committed to git looking like this:
+Suppose you have a simple script `mymodel.py` committed to git, looking like this:
 
 ```python
 import time
@@ -30,13 +29,13 @@ with open("test_result.txt", "w") as f:
 
 You tune some parameters (here `p1` and `p2`) without committing the changes to git.
 
-Now you run your script with rair like this:
+Now you run your script like this:
 
 ```bash
 rair mymodel.py
 ```
 
-Rair creates an archive with the following structure:
+Rair runs the script and creates an archive with the following structure:
 
 ```
 rairarchive/
@@ -51,7 +50,7 @@ rairarchive/
         └── test_result.txt  # output file (hardlink)
 ```
 
-Here the shortened `info.md`. It gives an overview of the run:
+The file `info.md` gives an overview of the run:
 
 ```markdown
 # Run Information
@@ -75,9 +74,11 @@ p2 = 3.3
 - `test_result.txt` -> `rairarchive/data/9157ce88256e95668977_test_result.txt` (hash: `9157ce88`)
 ```
 
+The "Run hash" captures the git hash, code diff, command line parameters and input file content.
+
 ## Install
 
-rair can be installed with pip. Its tested on Windows and Unix:
+Rair can be installed with pip. Its tested on Windows and Unix:
 
 ```bash
 pip install rair
@@ -97,7 +98,7 @@ pip install rair
 - **Default command**: Configure a default command to run when no script specified
 - **Hierarchical config**: Local configs override project settings
 
-## Running rair
+## Running Rair
 
 ```bash
 # Run a Python script with automatic tracking of all data files
