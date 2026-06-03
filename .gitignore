@@ -6,3 +6,5 @@ __pycache__
 /rairarchive
 /.rair_cache
 /tests/output
+/dist
+rair/_version.py
