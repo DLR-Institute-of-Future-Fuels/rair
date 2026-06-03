@@ -13,6 +13,10 @@ dependencies = [
     'tomli>=2.0.0; python_version < "3.11"',
 ]
 
+[project.urls]
+Repository = "https://github.com/DLR-Institute-of-Future-Fuels/rair.git"
+Issues = "https://github.com/DLR-Institute-of-Future-Fuels/rair/issues"
+
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
