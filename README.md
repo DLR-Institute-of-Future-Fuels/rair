@@ -134,38 +134,46 @@ By default Rair will track all files in the project directory that are not track
 --no-output-files-in-run   Do not create hardlinks to output files in the run folder
 --comment TEXT             Add a comment to info.md and run.json
 --setup                    Run interactive setup dialog
---help                     Show this message and exit
+--help                     List all CLI flags
 ```
 
 ## Configuration
-As alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`:
+As alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`. Here example configurations:
 
 **.rair.toml:**
 ```toml
 archive_dir = "rairarchive"
 input_glob = ["data/*.csv", "cache/*.pkl"]
 output_glob = ["results/*.json", "logs/*.txt"]
-exclude_glob = ["data/temp/*"]
-autodata_dir = "./data"
-capture_output = true
-auto_discover = true          # Enable auto-discovery (default)
-output_files_in_run = false   # Create hardlinks to outputs in run folder
-default_command = "make"      # Default command when no script specified
+capture_output = false
+output_files_in_run = false
+default_command = "make"
 ```
 
 **pyproject.toml:**
 ```toml
 [tool.rair]
 archive_dir = "rairarchive"
-input = ["data/*.csv", "cache/*.pkl"]
-output = ["results/*.json", "logs/*.txt"]
-exclude = ["data/temp/*"]
-autodata_dir = "./data"
-capture_output = true
-auto_discover = true          # Enable auto-discovery
-output_files_in_run = false   # Create hardlinks to outputs in run folder
-default_command = "make"      # Default command when no script specified
+input_glob = ["data/*.csv", "cache/*.pkl"]
+output_glob = ["results/*.json", "logs/*.txt"]
+capture_output = false
+output_files_in_run = false
+default_command = "make"
 ```
+
+### All Config Values
+
+| Config Value          | Type        | Default       | Description |
+|-----------------------|-------------|---------------|-------------|
+| `archive_dir`         | `Path`      | `rairarchive` | Directory where archive data is stored |
+| `input_glob`          | `list[str]` | `[]`          | Glob patterns for input files to track |
+| `output_glob`         | `list[str]` | `[]`          | Glob patterns for output files to track |
+| `exclude_glob`        | `list[str]` | `[]`          | Glob patterns for files to exclude from tracking |
+| `autodata_dir`        | `str`       | Project dir   | Directory for auto-discovering input/output files |
+| `capture_output`      | `bool`      | `true`        | Whether to capture stdout/stderr to `out.txt` |
+| `auto_discover`       | `bool`      | `true`        | Enable auto-discovery of input/output files when not explicitly specified |
+| `output_files_in_run` | `bool`      | `true`        | Create hardlinks to output files in the run folder |
+| `default_command`     | `str`       | None          | Command to run when invoking `rair` without a command |
 
 ### Hierarchical Configuration
 You can have different configurations for different directories:
