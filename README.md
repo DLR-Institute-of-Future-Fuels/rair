@@ -129,14 +129,12 @@ By default Rair will track all files in the project directory that are not track
 --exclude TEXT             Glob pattern to exclude from tracking
 --archive-dir DIRECTORY    Directory for archive data (default: rairarchive)
 --autodata DIRECTORY       Directory for auto-discovering input/output files
---capture-output/--no-capture-output
-                            Capture stdout to out.txt [default: enabled]
---auto-discover/--no-auto-discover
-                            Enable/disable auto-discovery [default: enabled]
---output-files-in-run      Create hardlinks to output files in run folder
---comment TEXT             Add a comment to the run
+--no-capture-output        Do not write console output to out.txt
+--no-auto-discover         Disable auto-discovery when --input/--output not specified
+--no-output-files-in-run   Do not create hardlinks to output files in the run folder
+--comment TEXT             Add a comment to info.md and run.json
 --setup                    Run interactive setup dialog
---help                     Show help message
+--help                     Show this message and exit
 ```
 
 ## Configuration

@@ -50,7 +50,7 @@ def main(
     ),
     archive_dir: Optional[Path] = Option(
         default=None,
-        help="Directory for archive data",
+        help="Directory for archive data (default: rairarchive)",
         exists=False,
         file_okay=False,
         dir_okay=True,
@@ -66,15 +66,15 @@ def main(
     ),
     capture_output: Optional[bool] = Option(
         default=None,
-        help="Capture and save script output to out.txt",
+        help="Write console output to out.txt (default: on)",
     ),
     auto_discover: Optional[bool] = Option(
         default=None,
-        help="Enable auto-discovery when --input/--output not specified",
+        help="Enable auto-discovery when --input/--output not specified (default: on)",
     ),
     output_files_in_run: Optional[bool] = Option(
         default=None,
-        help="Create hardlinks to output files in the run folder",
+        help="Create hardlinks to output files in the run folder (default: on)",
     ),
     comment: Optional[str] = Option(
         default="",
@@ -83,6 +83,7 @@ def main(
     setup: bool = Option(
         default=False,
         help="Run interactive setup dialog",
+        is_flag=True,
     ),
 ) -> None:
     """Run a script with data versioning.
