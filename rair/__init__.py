@@ -1,7 +1,6 @@
 """Rair - Simple data versioning."""
 
-__version__ = "0.1.0"
-
 from .cli import app
+from ._version import __version__  # Run "pip install -e ." to generate _version.py
 
 __all__ = ["app"]
