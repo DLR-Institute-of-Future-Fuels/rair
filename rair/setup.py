@@ -1,19 +1,14 @@
 """Interactive setup dialog for rair configuration."""
 
+import json
 import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 import typer
 from typer import confirm, prompt
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomli
-
 from .git import get_toplevel
-from .config import RairConfig, load_config, normalize_path
+from .config import RairConfig, normalize_path
 
 
 def is_git_project(directory: Path) -> bool:
@@ -62,6 +57,10 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
         }
     }
 
+    def toml_string(value: str) -> str:
+        # JSON string escaping is valid for TOML basic strings
+        return json.dumps(value, ensure_ascii=False)
+
     config_content = ""
     for section, values in config_dict.items():
         config_content += f"[{section}]\n"
@@ -69,18 +68,18 @@ def write_config_to_file(config: RairConfig, config_path: Path) -> None:
             if value is None:
                 continue
             if isinstance(value, list):
-                for item in value:
-                    config_content += f'{key} = "{item}"\n'
+                if not value:
+                    continue
+                items = ", ".join(toml_string(item) for item in value)
+                config_content += f"{key} = [{items}]\n"
+            elif isinstance(value, str):
+                config_content += f"{key} = {toml_string(value)}\n"
+            elif isinstance(value, bool):
+                config_content += f"{key} = {str(value).lower()}\n"
             else:
-                if isinstance(value, str):
-                    config_content += f'{key} = "{value}"\n'
-                elif isinstance(value, bool):
-                    config_content += f"{key} = {str(value).lower()}\n"
-                else:
-                    config_content += f"{key} = {value}\n"
-            config_content += "\n"
+                config_content += f"{key} = {value}\n"
 
-    config_path.write_text(config_content)
+    config_path.write_text(config_content, encoding="utf-8")
 
 
 def setup_interactive(

@@ -15,37 +15,40 @@ def _call_git_command(
         ["git"] + args,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=check,
         cwd=str(cwd) if cwd else None,
     )
-    return result.stdout.strip()
+    # Only strip line breaks: a diff may end with a whitespace-only context line
+    return result.stdout.strip("\r\n")
 
 def get_commit_hash(cwd: Optional[Path] = None) -> str:
     """Return the full git commit hash of the current HEAD."""
     try:
         return _call_git_command(["rev-parse", "HEAD"], cwd=cwd)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return "no-commit"
 
 def get_short_hash(cwd: Optional[Path] = None) -> str:
     """Return the short git commit hash of the current HEAD."""
     try:
         return _call_git_command(["rev-parse", "--short", "HEAD"], cwd=cwd)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return "no-commit"
 
 def get_branch(cwd: Optional[Path] = None) -> str:
     """Return the current branch name."""
     try:
         return _call_git_command(["rev-parse", "--abbrev-ref", "HEAD"], cwd=cwd)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return "unknown"
 
 def get_diff(cwd: Optional[Path] = None) -> str:
     """Return the uncommitted changes in the working directory."""
     try:
         return _call_git_command(["diff", "HEAD"], cwd=cwd)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return ""
 
 def get_diff_hash(diff: str) -> str:
@@ -62,7 +65,7 @@ def get_tracking_url(cwd: Optional[Path] = None) -> str:
         )
         remote = upstream.split("/", 1)[0]
         return _call_git_command(["remote", "get-url", remote], cwd=cwd)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return "no-upstream"
 
 def get_toplevel(cwd: Optional[Path] = None) -> Path:
@@ -78,7 +81,7 @@ def get_toplevel(cwd: Optional[Path] = None) -> Path:
     try:
         toplevel = _call_git_command(["rev-parse", "--show-toplevel"], cwd=cwd)
         return Path(toplevel)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         # If git isn't found or not in a repo, return current directory
         return cwd if cwd else Path(".")
 
@@ -109,12 +112,15 @@ def get_tracked_files(cwd: Optional[Path] = None) -> list[Path]:
         List of Path objects for tracked files
     """
     try:
-        stdout = _call_git_command(["ls-files", "--full-name", "--cached"], cwd=cwd)
+        # quotepath=off keeps non-ASCII file names unescaped
+        stdout = _call_git_command(
+            ["-c", "core.quotepath=off", "ls-files", "--full-name", "--cached"], cwd=cwd
+        )
         if not stdout:
             return []
 
         base_path = cwd if cwd else Path(".")
         files = stdout.strip().split('\n')
         return [base_path / f for f in files if f]
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return []

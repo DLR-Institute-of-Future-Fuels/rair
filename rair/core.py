@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -41,6 +42,26 @@ def get_archive_dir_for_exclude(base_dir: Path, config: RairConfig) -> Path:
         return config.archive_dir.resolve()
     else:
         return (base_dir / config.archive_dir).resolve()
+
+
+def get_autodata_dir(base_dir: Path, config: RairConfig) -> Path:
+    """Get the directory that is searched by auto-discovery.
+
+    Relative paths are resolved from the base_dir (project root). Falls back to
+    base_dir if no autodata_dir is configured.
+
+    Args:
+        base_dir: The project directory
+        config: RairConfig with autodata_dir setting
+
+    Returns:
+        Path to the directory to search for input/output files
+    """
+    if config.autodata_dir is None:
+        return base_dir
+    if config.autodata_dir.is_absolute():
+        return config.autodata_dir
+    return base_dir / config.autodata_dir
 
 
 def should_use_auto_discovery_for_input(config: RairConfig) -> bool:
@@ -113,11 +134,12 @@ def run(
         before_hashes: dict[Path, str] = {}
         exclude = config.exclude_glob
         candidates: list[Path] = []
+        autodata_dir = get_autodata_dir(base_dir, config)
 
         if should_use_auto_discovery_for_input(config) or should_use_auto_discovery_for_output(config):
             tracked_files = get_tracked_files(base_dir)
             archive_dir_for_exclude = get_archive_dir_for_exclude(base_dir, config)
-            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, archive_dir_for_exclude)
+            candidates = get_auto_discover_candidates(autodata_dir, tracked_files + exclude, archive_dir_for_exclude)
             if should_use_auto_discovery_for_output(config):
                 before_hashes = get_file_hash_map(candidates)
 
@@ -131,13 +153,6 @@ def run(
         git_status = get_status(cwd=base_dir)
         git_info = create_git_info(git_status)
 
-        input_file_hashes = [file.hash for file in before_snapshot.files.values()]
-        full_hash, short_hash = compute_combined_hash(
-            git_info.commit_hash,
-            git_info.diff_hash,
-            input_file_hashes
-        )
-
         if command_override:
             if isinstance(script, Path):
                 command_args = [command_override, str(script)]
@@ -149,43 +164,56 @@ def run(
             command_args = get_command_args(script, detected_type)
         full_command = command_args + args
 
+        input_file_hashes = [file.hash for file in before_snapshot.files.values()]
+        full_hash, short_hash = compute_combined_hash(
+            git_info.commit_hash,
+            git_info.diff_hash,
+            input_file_hashes,
+            full_command,
+        )
+
         script_output: str | None = None
         return_code: int
 
         # Time the script execution
         start_time = time.time()
-        
-        if config.capture_output is not False:
-            process = subprocess.Popen(
-                full_command,
-                cwd=str(execution_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                bufsize=1,
-            )
-            output_lines: list[str] = []
-            assert process.stdout is not None
-            for line in process.stdout:
-                print(line, end="")
-                output_lines.append(line)
-            process.wait()
-            script_output = "".join(output_lines)
-            return_code = process.returncode
-        else:
-            result = subprocess.run(
-                full_command,
-                cwd=str(execution_dir),
-            )
-            return_code = result.returncode
-            
+
+        try:
+            if config.capture_output is not False:
+                process = subprocess.Popen(
+                    full_command,
+                    cwd=str(execution_dir),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    bufsize=1,
+                )
+                output_lines: list[str] = []
+                assert process.stdout is not None
+                for line in process.stdout:
+                    print(line, end="")
+                    output_lines.append(line)
+                process.wait()
+                script_output = "".join(output_lines)
+                return_code = process.returncode
+            else:
+                result = subprocess.run(
+                    full_command,
+                    cwd=str(execution_dir),
+                )
+                return_code = result.returncode
+        except FileNotFoundError:
+            print(f"Error: Command not found: {full_command[0]}", file=sys.stderr)
+            return 127
+
         end_time = time.time()
         execution_time = end_time - start_time
 
         if should_use_auto_discovery_for_output(config):
             archive_dir_for_exclude = get_archive_dir_for_exclude(base_dir, config)
-            candidates = get_auto_discover_candidates(base_dir, tracked_files + exclude, archive_dir_for_exclude)
+            candidates = get_auto_discover_candidates(autodata_dir, tracked_files + exclude, archive_dir_for_exclude)
             after_hashes = get_file_hash_map(candidates)
             output_files = categorize_files_by_changes(before_hashes, after_hashes)
         else:
@@ -209,6 +237,8 @@ def run(
             combined_hash=full_hash,
             execution_time=execution_time,
             output_files_in_run=config.output_files_in_run,
+            comment=config.comment or "",
+            start_time=start_time,
         )
 
         return return_code

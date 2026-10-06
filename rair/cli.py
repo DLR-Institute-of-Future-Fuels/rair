@@ -1,12 +1,20 @@
 """CLI for rair using Typer."""
 
+import os
+import shlex
 from pathlib import Path
 from typing import Optional
 
 import typer
 from typer import Argument, Option
 
-from .config import load_hierarchical_config, merge_config_with_cli, RairConfig
+from .config import (
+    load_hierarchical_config,
+    load_toml_config,
+    merge_config_with_cli,
+    parse_rair_config,
+    RairConfig,
+)
 from .core import run
 from .cli_parser import is_script_extension
 from .git import get_toplevel
@@ -18,7 +26,8 @@ app = typer.Typer(
 )
 
 
-@app.command()
+# Unknown options are passed on to the script, so that `rair myscript.py --lr 0.1` works
+@app.command(context_settings={"ignore_unknown_options": True})
 def main(
     script_or_command: Optional[str] = Argument(
         default=None,
@@ -81,9 +90,9 @@ def main(
         help="Add a comment to info.md and run.json",
     ),
     setup: bool = Option(
-        default=False,
+        False,
+        "--setup",
         help="Run interactive setup dialog",
-        is_flag=True,
     ),
 ) -> None:
     """Run a script with data versioning.
@@ -93,6 +102,9 @@ def main(
         rair python mymodel.py arg1 arg2
         rair make --all
         rair --setup
+
+    Options unknown to rair are passed on to the script. Use "--" to pass
+    options that rair knows itself: rair myscript.py -- --input file.txt
     """
 
     execution_dir = Path.cwd()
@@ -104,11 +116,17 @@ def main(
         )
         raise typer.Exit(0)
 
+    if config is not None and not config.is_file():
+        typer.echo(f"Error: Config file not found: {config}", err=True)
+        raise typer.Exit(1)
+
     if script_or_command is None:
-        project_dir = get_toplevel()
-        file_config = load_hierarchical_config(execution_dir, project_dir, config.name if config else None)
+        file_config = _load_file_config(execution_dir, get_toplevel(), config)
         if file_config.default_command:
-            script_or_command = file_config.default_command
+            # The default command may contain arguments, e.g. "python train.py --fast"
+            command_parts = shlex.split(file_config.default_command, posix=os.name != "nt")
+            script_or_command = command_parts[0]
+            args = command_parts[1:] + args
         else:
             typer.echo("Error: No script or command specified. Use --help for usage information.")
             raise typer.Exit(1)
@@ -125,37 +143,39 @@ def main(
             script = Path(args[0])
         script_args = args[1:]
 
-    project_dir = get_toplevel(script.parent) if script else get_toplevel()
+    # The first argument of a command is not necessarily a path to a script
+    if script is not None and script.parent.is_dir():
+        project_dir = get_toplevel(script.parent)
+    else:
+        project_dir = get_toplevel()
 
-    file_config = load_hierarchical_config(execution_dir, project_dir, config.name if config else None)
+    file_config = _load_file_config(execution_dir, project_dir, config)
 
-    merged_config = merge_config_with_cli(
+    run_config = merge_config_with_cli(
         file_config,
-        input,
-        output,
-        exclude,
-        archive_dir,
-        autodata if autodata is not None else project_dir,
-        auto_discover,
-        output_files_in_run,
+        cli_input=input,
+        cli_output=output,
+        cli_exclude=exclude,
+        cli_archive_dir=archive_dir,
+        cli_autodata=autodata,
+        cli_capture_output=capture_output,
+        cli_auto_discover=auto_discover,
+        cli_output_files_in_run=output_files_in_run,
     )
-
-    run_config = RairConfig(
-        input_glob=merged_config.input_glob,
-        output_glob=merged_config.output_glob,
-        exclude_glob=merged_config.exclude_glob,
-        archive_dir=merged_config.archive_dir,
-        autodata_dir=merged_config.autodata_dir,
-        capture_output=merged_config.capture_output,
-        auto_discover=merged_config.auto_discover,
-        output_files_in_run=merged_config.output_files_in_run,
-        default_command=merged_config.default_command,
-        comment=comment,
-    )
+    if run_config.autodata_dir is None:
+        run_config.autodata_dir = project_dir
+    run_config.comment = comment
 
     exit_code = run(script, project_dir, script_args, run_config, command, execution_dir)
 
     raise typer.Exit(code=exit_code)
+
+
+def _load_file_config(execution_dir: Path, project_dir: Path, config: Optional[Path]) -> RairConfig:
+    """Load the file configuration, preferring an explicitly given config file."""
+    if config is not None:
+        return parse_rair_config(load_toml_config(config))
+    return load_hierarchical_config(execution_dir, project_dir)
 
 
 def entry_point() -> None:

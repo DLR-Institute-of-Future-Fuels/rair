@@ -13,6 +13,7 @@ from rair.git import (
     get_tracking_url,
     get_status,
     get_tracked_files,
+    get_toplevel,
 )
 
 
@@ -36,6 +37,28 @@ class TestGetCommitHash:
             result = get_commit_hash(cwd=Path("/some/path"))
             assert result == "abc123"
             mock.assert_called_once_with(["rev-parse", "HEAD"], cwd=Path("/some/path"))
+
+
+class TestGitNotInstalled:
+    """A missing git executable must be handled like a missing repository."""
+
+    def test_fallback_values(self):
+        with patch("rair.git.subprocess.run") as mock:
+            mock.side_effect = FileNotFoundError("git")
+            assert get_commit_hash() == "no-commit"
+            assert get_short_hash() == "no-commit"
+            assert get_branch() == "unknown"
+            assert get_diff() == ""
+            assert get_tracking_url() == "no-upstream"
+            assert get_tracked_files() == []
+            assert get_toplevel(Path("some/path")) == Path("some/path")
+
+
+class TestCallGitCommand:
+    def test_trailing_blank_context_line_of_diff_is_kept(self):
+        with patch("rair.git.subprocess.run") as mock:
+            mock.return_value.stdout = "@@ -1,2 +1,2 @@\n-a\n+b\n \n"
+            assert get_diff() == "@@ -1,2 +1,2 @@\n-a\n+b\n "
 
 
 class TestGetShortHash:
@@ -198,4 +221,6 @@ class TestGetTrackedFiles:
             mock.return_value = "file1.txt\nfile2.txt"
             result = get_tracked_files(cwd=Path("/some/path"))
 
-        mock.assert_called_once_with(["ls-files", "--full-name", "--cached"], cwd=Path("/some/path"))
+        mock.assert_called_once_with(
+            ["-c", "core.quotepath=off", "ls-files", "--full-name", "--cached"], cwd=Path("/some/path")
+        )

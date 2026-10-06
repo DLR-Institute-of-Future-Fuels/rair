@@ -50,32 +50,47 @@ rairarchive/
 
 The file `info.md` gives an overview of the run:
 
-```markdown
+````markdown
 # Run Information
+
 - Start time: 2026-06-03 11:53:09
 - Execution time: 0.185 s
 - Command: `python mymodel.py`
 - Run hash: `023aa51fa4981ebe097f2045947d2108cff014c42332d5f6ef5a9d71cbf5273b`
 
 ## Git Information
+
 - Commit: `95aa8c491f8a3e5c44890ea3c6616e123692c4cd`
 - Short git hash: `95aa8c4`
 - Branch: `main`
 - Tracking URL: `no-upstream`
 
 ## Uncommitted Changes
+
+```
 in mymodel.py:
 p1 = 7.1
 p2 = 3.3
-
-## Output Files
-- `test_result.txt` -> `rairarchive/data/9157ce88256e95668977_test_result.txt` (hash: `9157ce88`)
 ```
 
-The "Run hash" captures the git hash, code diff, command line parameters and input file content.
+## Restore Code
+
+To restore the code state for this run, run:
+
+```bash
+git checkout 95aa8c491f8a3e5c44890ea3c6616e123692c4cd
+git apply "rairarchive/runs/20260603-001-023aa51f/git_diff.patch"
+```
+
+## Output Files
+
+- `test_result.txt` -> `rairarchive/data/9157ce88256e95668977_test_result.txt` (hash: `9157ce88`)
+````
+
+The "Run hash" captures the git hash, code diff, command line and input file content.
 
 ## Install
-Rair can be installed with pip. Its tested on Windows and Unix:
+Rair can be installed with pip. It is tested on Windows and Unix:
 
 ```bash
 pip install rair
@@ -104,6 +119,11 @@ rair python3 mymodel.py arg1 arg2
 # The first argument can be a Python script or any arbitrary command
 rair make --all
 
+# Options that Rair does not know are passed on to the script.
+# Use "--" to pass an option to the script that Rair knows itself
+rair myscript.py --learning-rate 0.1
+rair myscript.py -- --input file.txt
+
 # Manually specify which files to track
 rair --input "data/*.csv" --output "results/*.json" myscript.py
 
@@ -119,14 +139,16 @@ rair --comment "experiment 1"
 ```
 
 ### Automatic data file tracking
-By default Rair will track all files in the project directory that are not tracked by git as input data files. Output files are discovered by comparing file hashes before and after the run. This allows to track all relevant files without the need to specify them manually. File hashes are cached in `.rair_cache/` and are recalculated for files with a changed modification time.
+By default Rair will track all files in the project directory (the top-level directory of the git repository) that are not tracked by git as input data files. Hidden files and directories (names starting with a dot) and the archive directory are ignored. Output files are discovered by comparing file hashes before and after the run: new and changed files are outputs. This allows to track all relevant files without the need to specify them manually. The directory that is searched can be restricted with `--autodata`. File hashes are cached in `.rair_cache/` and are recalculated for files with a changed modification time.
+
+Note that files ignored by git (like `__pycache__` or a non-hidden virtual environment) are not tracked by git and are therefore picked up as data files, too. Use `--exclude` or `--autodata` to leave them out.
 
 ### All CLI flags
 ```
---config FILE              Path to config file
---input TEXT               Glob pattern for input files to track
---output TEXT              Glob pattern for output files to track
---exclude TEXT             Glob pattern to exclude from tracking
+--config FILE              Path to config file (used instead of .rair.toml/pyproject.toml)
+--input TEXT               Glob pattern for input files to track (can be repeated)
+--output TEXT              Glob pattern for output files to track (can be repeated)
+--exclude TEXT             Glob pattern to exclude from tracking (can be repeated)
 --archive-dir DIRECTORY    Directory for archive data (default: rairarchive)
 --autodata DIRECTORY       Directory for auto-discovering input/output files
 --no-capture-output        Do not write console output to out.txt
@@ -137,11 +159,14 @@ By default Rair will track all files in the project directory that are not track
 --help                     List all CLI flags
 ```
 
+The three `--no-...` flags have a positive counterpart (`--capture-output`, `--auto-discover`, `--output-files-in-run`) to override a value from the config file.
+
 ## Configuration
-As alternative to CLI parameters, configuration can be provided via a `.rair.toml` file or in `pyproject.toml` under `[tool.rair]`. Here example configurations:
+As alternative to CLI parameters, configuration can be provided via a `.rair.toml` file under `[rair]` or in `pyproject.toml` under `[tool.rair]`. CLI parameters override the values from the config file. Here example configurations:
 
 **.rair.toml:**
 ```toml
+[rair]
 archive_dir = "rairarchive"
 input_glob = ["data/*.csv", "cache/*.pkl"]
 output_glob = ["results/*.json", "logs/*.txt"]
@@ -169,16 +194,18 @@ default_command = "make"
 | `input_glob`          | `list[str]` | `[]`          | Glob patterns for input files to track |
 | `output_glob`         | `list[str]` | `[]`          | Glob patterns for output files to track |
 | `exclude_glob`        | `list[str]` | `[]`          | Glob patterns for files to exclude from tracking |
-| `autodata_dir`        | `str`       | Project dir   | Directory for auto-discovering input/output files |
+| `autodata_dir`        | `Path`      | Project dir   | Directory for auto-discovering input/output files |
 | `capture_output`      | `bool`      | `true`        | Whether to capture stdout/stderr to `out.txt` |
 | `auto_discover`       | `bool`      | `true`        | Enable auto-discovery of input/output files when not explicitly specified |
 | `output_files_in_run` | `bool`      | `true`        | Create hardlinks to output files in the run folder |
-| `default_command`     | `str`       | None          | Command to run when invoking `rair` without a command |
+| `default_command`     | `str`       | None          | Command (optionally with arguments) to run when invoking `rair` without a command |
+
+Relative paths and glob patterns are resolved from the project directory.
 
 ### Hierarchical Configuration
 You can have different configurations for different directories:
 
-- A `.rair.toml` in the current directory overrides project-level config
+- A `.rair.toml` (or a `pyproject.toml` with a `[tool.rair]` section) in the current directory replaces the project-level config completely, the two are not merged
 - Use `rair --setup` in subdirectories to create local configs
 - Run `rair --setup` and choose "(c)urrent directory" or "(p)roject"
 
@@ -187,7 +214,7 @@ Example directory structure:
 project/
 ├── .rair.toml          # Project config
 └── experiments/
-    ├── .rair.toml      # Pverrides project config
+    ├── .rair.toml      # Overrides project config
     └── train.py
 ```
 

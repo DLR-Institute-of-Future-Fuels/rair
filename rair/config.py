@@ -90,8 +90,6 @@ def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_m
         config: RairConfig instance to update
         field_map: Mapping of TOML field names to config field names
     """
-    import sys
-    
     known_fields = set(field_map.keys())
     unknown_fields = set(rair_config.keys()) - known_fields
     
@@ -178,8 +176,9 @@ def load_hierarchical_config(
 ) -> RairConfig:
     """Load rair configuration with hierarchical lookup.
 
-    First checks execution_dir for a local config file. If found, uses it
-    and ignores project-level config. If not found, falls back to project_dir.
+    First checks execution_dir for a local config file (.rair.toml or a
+    pyproject.toml with a [tool.rair] section). If found, uses it and ignores
+    project-level config. If not found, falls back to project_dir.
 
     This allows different directories to have different configurations without
     merging - local config completely overrides project config.
@@ -200,7 +199,9 @@ def load_hierarchical_config(
     local_pyproject_path = find_pyproject_toml(execution_dir)
     if local_pyproject_path is not None:
         config_data = load_toml_config(local_pyproject_path)
-        return parse_rair_config(config_data)
+        # A local pyproject.toml without rair settings must not shadow the project config
+        if "rair" in config_data.get("tool", {}):
+            return parse_rair_config(config_data)
 
     return load_config(project_dir, config_name)
 
@@ -222,14 +223,14 @@ def merge_config_with_cli(
 
     Args:
         config: Loaded file configuration
-        cli_input: CLI --input-glob value
-        cli_output: CLI --output-glob value
+        cli_input: CLI --input value
+        cli_output: CLI --output value
         cli_exclude: CLI --exclude value
         cli_archive_dir: CLI --archive-dir value
         cli_autodata: CLI --autodata value
-        cli_auto_discover: CLI --no-auto-discover value
-        cli_output_files_in_run: CLI --output-files-in-run value
-        cli_comment: CLI --comment value
+        cli_capture_output: CLI --capture-output/--no-capture-output value
+        cli_auto_discover: CLI --auto-discover/--no-auto-discover value
+        cli_output_files_in_run: CLI --output-files-in-run/--no-output-files-in-run value
 
     Returns:
         Merged RairConfig

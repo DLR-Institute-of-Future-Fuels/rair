@@ -126,6 +126,13 @@ class TestGetGitlabLink:
         )
         assert link == "https://gitlab.dlr.de/user/repo/-/tree/abc123def"
 
+    def test_gitlab_url_only_strips_git_suffix(self):
+        link = get_gitlab_link("https://gitlab.dlr.de/user/digit.git", "abc123def")
+        assert link == "https://gitlab.dlr.de/user/digit/-/tree/abc123def"
+
+        link = get_gitlab_link("https://gitlab.dlr.de/user/toolkit", "abc123def")
+        assert link == "https://gitlab.dlr.de/user/toolkit/-/tree/abc123def"
+
     def test_other_url(self):
         link = get_gitlab_link("https://github.com/user/repo.git", "abc123")
         assert link is None
