@@ -1,7 +1,9 @@
 """Rair - Simple data versioning."""
 
-__version__ = "0.1.0"
+from importlib.metadata import version
 
 from .cli import app
+
+__version__ = version("rair")
 
 __all__ = ["app"]

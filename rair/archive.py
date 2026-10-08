@@ -69,13 +69,20 @@ def generate_run_id(cache_dir: Path, combined_hash: str) -> str:
     return f"{today}-{run_number:03d}-{combined_hash}"
 
 
-def compute_combined_hash(git_hash: str, diff_hash: str, input_hashes: list[str]) -> tuple[str, str]:
-    """Compute combined hash from git commit, diff, and input file hashes.
+def compute_combined_hash(
+    git_hash: str,
+    diff_hash: str,
+    input_hashes: list[str],
+    command: Optional[list[str]] = None,
+) -> tuple[str, str]:
+    """Compute combined hash from git commit, diff, input file hashes and command line.
 
     Returns:
         tuple: (full_hash, short_hash_prefix)
     """
     combined = git_hash + diff_hash + "".join(sorted(input_hashes))
+    if command:
+        combined += "\0" + "\0".join(command)
     full_hash = hashlib.sha256(combined.encode()).hexdigest()
     return (full_hash, full_hash[:8])
 
@@ -90,7 +97,7 @@ def create_run_directory(archive_dir: Path, run_id: str) -> Path:
 def get_gitlab_link(tracking_url: str, commit_hash: str) -> str | None:
     """Generate a GitLab link if applicable."""
     if tracking_url.startswith("https://gitlab.dlr.de/"):
-        return tracking_url.rstrip(".git") + "/-/tree/" + commit_hash
+        return tracking_url.removesuffix(".git") + "/-/tree/" + commit_hash
     return None
 
 
@@ -167,6 +174,7 @@ def write_run_info(
     combined_hash: str,
     execution_time: float,
     comment: str,
+    start_time: Optional[float] = None,
 ) -> None:
     """Write the info.md file for a run."""
     gitlab_link = get_gitlab_link(git_info.tracking_url, git_info.commit_hash)
@@ -174,16 +182,18 @@ def write_run_info(
     diff_path = run_dir / "git_diff.patch"
 
     if git_info.diff:
-        with open(diff_path, "w") as f:
-            f.write(git_info.diff)
+        # Keep LF line endings and a final newline, otherwise `git apply` rejects the patch
+        with open(diff_path, "w", encoding="utf-8", newline="") as f:
+            f.write(git_info.diff + "\n")
 
     display_script = ' '.join(command)
+    start = time.localtime(start_time)
 
-    with open(run_dir / "info.md", "w") as f:
+    with open(run_dir / "info.md", "w", encoding="utf-8") as f:
         f.write("# Run Information\n\n")
         if comment:
             f.write(f"- Comment: {comment}\n")
-        f.write(f"- Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"- Start time: {time.strftime('%Y-%m-%d %H:%M:%S', start)}\n")
         f.write(f"- Execution time: {execution_time:.3f} s\n")
         f.write(f"- Command: `{display_script}`\n")
         f.write(f"- Run hash: `{combined_hash}`\n")
@@ -205,25 +215,17 @@ def write_run_info(
             if compressed:
                 f.write("```\n")
                 f.write(compressed)
-                f.write("\n```\n\n")
-                diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
-                f.write("\n## Restore Code\n\n")
-                f.write("To restore the code state for this run, run:\n\n")
-                f.write("```bash\n")
-                f.write(f"git checkout {git_info.commit_hash}\n")
-                f.write(f"git apply {diff_path_display}\n")
-                f.write("```")
             else:
                 f.write("```diff\n")
                 f.write(git_info.diff)
-                f.write("\n```\n\n")
-                diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
-                f.write("\n## Restore Code\n\n")
-                f.write("To restore the code state for this run, run:\n\n")
-                f.write("```bash\n")
-                f.write(f"git checkout {git_info.commit_hash}\n")
-                f.write(f"git apply {diff_path_display}\n")
-                f.write("```")
+            f.write("\n```\n")
+            diff_path_display = _make_relative_path(project_dir, archive_dir, diff_path)
+            f.write("\n## Restore Code\n\n")
+            f.write("To restore the code state for this run, run:\n\n")
+            f.write("```bash\n")
+            f.write(f"git checkout {git_info.commit_hash}\n")
+            f.write(f'git apply "{diff_path_display.as_posix()}"\n')
+            f.write("```\n")
 
         if input_files:
             f.write("\n## Input Files\n\n")
@@ -268,11 +270,12 @@ def write_run_json(
     combined_hash: str = "",
     execution_time: float = 0,
     comment: str = "",
+    start_time: Optional[float] = None,
 ) -> None:
     """Write the run.json file for a run."""
     run_data: dict[str, Any] = {
         "run_id": run_dir.name,
-        "run_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "run_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(start_time)),
         "execution_time": execution_time,
         "command": command,
         "git": {
@@ -296,7 +299,7 @@ def write_run_json(
         "comment": comment
     }
 
-    with open(run_dir / "run.json", "w") as f:
+    with open(run_dir / "run.json", "w", encoding="utf-8") as f:
         json.dump(run_data, f, indent=2)
 
 
@@ -362,8 +365,14 @@ def create_run_info(
     execution_time: float = 0,
     output_files_in_run: Optional[bool] = None,
     comment: str = "",
+    start_time: Optional[float] = None,
 ) -> None:
-    """Create a complete run with all data archived and info written."""
+    """Create a complete run with all data archived and info written.
+
+    Args:
+        start_time: Start of the script execution in seconds since the epoch
+            (defaults to the current time)
+    """
     run_dir = create_run_directory(archive_dir, run_id)
     data_dir = archive_dir / "data"
     archived_input = archive_files(input_snapshot, data_dir)
@@ -385,6 +394,7 @@ def create_run_info(
         combined_hash,
         execution_time,
         comment,
+        start_time,
     )
 
     has_output = script_output is not None and script_output != ""
@@ -405,4 +415,5 @@ def create_run_info(
         combined_hash,
         execution_time,
         comment,
+        start_time,
     )

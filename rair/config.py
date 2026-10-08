@@ -82,23 +82,53 @@ def _normalize_glob_value(val: Any) -> list[str]:
     return [v.replace("\\", "/") for v in values]
 
 
-def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_map: dict[str, str]) -> None:
-    """Parse rair config section and update config object.
+# Mapping of TOML setting names to RairConfig field names
+FIELD_MAP = {
+    "archive_dir": "archive_dir",
+    "input_glob": "input_glob",
+    "input": "input_glob",
+    "output_glob": "output_glob",
+    "output": "output_glob",
+    "exclude_glob": "exclude_glob",
+    "exclude": "exclude_glob",
+    "capture_output": "capture_output",
+    "autodata_dir": "autodata_dir",
+    "auto_discover": "auto_discover",
+    "output_files_in_run": "output_files_in_run",
+    "default_command": "default_command",
+}
+
+
+def _get_rair_section(config_data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """Get the rair section ([tool.rair] or [rair]) from loaded TOML data."""
+    if "tool" in config_data and "rair" in config_data["tool"]:
+        section: dict[str, Any] = config_data["tool"]["rair"]
+        return section
+    if "rair" in config_data:
+        section = config_data["rair"]
+        return section
+    return None
+
+
+def _parse_rair_section(rair_config: dict[str, Any]) -> dict[str, Any]:
+    """Parse a rair config section into values for the RairConfig fields.
+
+    Only settings that are present in the section are returned, so that
+    several sections can be merged without overwriting values by defaults.
 
     Args:
         rair_config: Raw config dictionary from TOML
-        config: RairConfig instance to update
-        field_map: Mapping of TOML field names to config field names
+
+    Returns:
+        Mapping of RairConfig field names to parsed values
     """
-    import sys
-    
-    known_fields = set(field_map.keys())
-    unknown_fields = set(rair_config.keys()) - known_fields
-    
+    unknown_fields = set(rair_config.keys()) - set(FIELD_MAP.keys())
+
     for unknown in unknown_fields:
         print(f"[WARNING] Unknown config setting '{unknown}' in config file", file=sys.stderr)
-    
-    for toml_field, config_field in field_map.items():
+
+    settings: dict[str, Any] = {}
+    for toml_field, config_field in FIELD_MAP.items():
         if toml_field in rair_config:
             val = rair_config[toml_field]
             if config_field in ["input_glob", "output_glob", "exclude_glob"]:
@@ -107,7 +137,16 @@ def _parse_rair_section(rair_config: dict[str, Any], config: RairConfig, field_m
                 val = Path(val)
             elif config_field in ["capture_output", "auto_discover", "output_files_in_run"]:
                 val = bool(val)
-            setattr(config, config_field, val)
+            settings[config_field] = val
+    return settings
+
+
+def _create_config(settings: dict[str, Any]) -> RairConfig:
+    """Create a RairConfig from parsed settings, using defaults for missing ones."""
+    config = RairConfig()
+    for config_field, val in settings.items():
+        setattr(config, config_field, val)
+    return config
 
 
 def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
@@ -119,29 +158,30 @@ def parse_rair_config(config_data: dict[str, Any]) -> RairConfig:
     Returns:
         RairConfig instance
     """
-    config = RairConfig()
-    
-    field_map = {
-        "archive_dir": "archive_dir",
-        "input_glob": "input_glob",
-        "input": "input_glob",
-        "output_glob": "output_glob",
-        "output": "output_glob",
-        "exclude_glob": "exclude_glob",
-        "exclude": "exclude_glob",
-        "capture_output": "capture_output",
-        "autodata_dir": "autodata_dir",
-        "auto_discover": "auto_discover",
-        "output_files_in_run": "output_files_in_run",
-        "default_command": "default_command",
-    }
+    rair_section = _get_rair_section(config_data)
+    return _create_config(_parse_rair_section(rair_section) if rair_section is not None else {})
 
-    if "tool" in config_data and "rair" in config_data["tool"]:
-        _parse_rair_section(config_data["tool"]["rair"], config, field_map)
-    elif "rair" in config_data:
-        _parse_rair_section(config_data["rair"], config, field_map)
 
-    return config
+def _load_settings(directory: Path, config_name: Optional[str] = None) -> dict[str, Any]:
+    """Load the settings given in the config file of a single directory.
+
+    Uses .rair.toml if present, otherwise a pyproject.toml with [tool.rair] section.
+
+    Args:
+        directory: Directory to search
+        config_name: Specific config file name (default: .rair.toml)
+
+    Returns:
+        Mapping of RairConfig field names to parsed values (empty without config)
+    """
+    config_path = find_config_file(directory, config_name)
+    if config_path is None:
+        config_path = find_pyproject_toml(directory)
+    if config_path is None:
+        return {}
+
+    rair_section = _get_rair_section(load_toml_config(config_path))
+    return _parse_rair_section(rair_section) if rair_section is not None else {}
 
 
 def load_config(project_dir: Path, config_name: Optional[str] = None) -> RairConfig:
@@ -158,17 +198,23 @@ def load_config(project_dir: Path, config_name: Optional[str] = None) -> RairCon
     Returns:
         RairConfig instance with loaded configuration
     """
-    config_path = find_config_file(project_dir, config_name)
+    return _create_config(_load_settings(project_dir, config_name))
 
-    if config_path is None:
-        pyproject_path = find_pyproject_toml(project_dir)
-        if pyproject_path is not None:
-            config_data = load_toml_config(pyproject_path)
-            return parse_rair_config(config_data)
-        return RairConfig()
 
-    config_data = load_toml_config(config_path)
-    return parse_rair_config(config_data)
+def _get_config_dirs(execution_dir: Path, project_dir: Path) -> list[Path]:
+    """Get the directories to search for config files, from project_dir down to execution_dir."""
+    resolved_execution_dir = execution_dir.resolve()
+    resolved_project_dir = project_dir.resolve()
+
+    if resolved_execution_dir == resolved_project_dir:
+        return [project_dir]
+    if not resolved_execution_dir.is_relative_to(resolved_project_dir):
+        return [project_dir, execution_dir]
+
+    config_dirs = [project_dir]
+    for part in resolved_execution_dir.relative_to(resolved_project_dir).parts:
+        config_dirs.append(config_dirs[-1] / part)
+    return config_dirs
 
 
 def load_hierarchical_config(
@@ -178,31 +224,24 @@ def load_hierarchical_config(
 ) -> RairConfig:
     """Load rair configuration with hierarchical lookup.
 
-    First checks execution_dir for a local config file. If found, uses it
-    and ignores project-level config. If not found, falls back to project_dir.
-
-    This allows different directories to have different configurations without
-    merging - local config completely overrides project config.
+    Merges the config files (.rair.toml or a pyproject.toml with a [tool.rair]
+    section) of all directories from project_dir down to execution_dir. A
+    setting in a subdirectory overrides the same setting of its parent
+    directories, settings that are not given are inherited. List values (glob
+    patterns) are replaced, not concatenated.
 
     Args:
-        execution_dir: Current working directory (checked first)
-        project_dir: Project root directory (fallback)
+        execution_dir: Current working directory (highest priority)
+        project_dir: Project root directory (lowest priority)
         config_name: Specific config file name (default: .rair.toml)
 
     Returns:
-        RairConfig instance with loaded configuration
+        RairConfig instance with merged configuration
     """
-    local_config_path = find_config_file(execution_dir, config_name)
-    if local_config_path is not None:
-        config_data = load_toml_config(local_config_path)
-        return parse_rair_config(config_data)
-
-    local_pyproject_path = find_pyproject_toml(execution_dir)
-    if local_pyproject_path is not None:
-        config_data = load_toml_config(local_pyproject_path)
-        return parse_rair_config(config_data)
-
-    return load_config(project_dir, config_name)
+    settings: dict[str, Any] = {}
+    for config_dir in _get_config_dirs(execution_dir, project_dir):
+        settings.update(_load_settings(config_dir, config_name))
+    return _create_config(settings)
 
 
 def merge_config_with_cli(
@@ -222,14 +261,14 @@ def merge_config_with_cli(
 
     Args:
         config: Loaded file configuration
-        cli_input: CLI --input-glob value
-        cli_output: CLI --output-glob value
+        cli_input: CLI --input value
+        cli_output: CLI --output value
         cli_exclude: CLI --exclude value
         cli_archive_dir: CLI --archive-dir value
         cli_autodata: CLI --autodata value
-        cli_auto_discover: CLI --no-auto-discover value
-        cli_output_files_in_run: CLI --output-files-in-run value
-        cli_comment: CLI --comment value
+        cli_capture_output: CLI --capture-output/--no-capture-output value
+        cli_auto_discover: CLI --auto-discover/--no-auto-discover value
+        cli_output_files_in_run: CLI --output-files-in-run/--no-output-files-in-run value
 
     Returns:
         Merged RairConfig

@@ -86,14 +86,14 @@ def is_in_hidden_directory(file_path: Path, base_dir: Path) -> bool:
 def get_auto_discover_candidates(
     base_dir: Path,
     exclude: Optional[list[Path | str]] = None,
-    archive_dir: Path = Path()
+    archive_dir: Optional[Path] = None
 ) -> list[Path]:
     """Get files that should be auto-discovered (not hidden, not git-tracked).
 
     Args:
         base_dir: Directory to search in
         exclude: List of files and glob patterns to exclude
-        archive_dir: Archive directory to exclude
+        archive_dir: Archive directory to exclude (optional)
 
     Returns:
         List of files that are candidates for auto-discovery
@@ -104,14 +104,16 @@ def get_auto_discover_candidates(
                 yield f
             else:
                 for gf in base_dir.glob(f):
-                    print('..', gf)
                     yield gf
 
+    # Compare resolved paths, since base_dir and the excluded files may be
+    # spelled differently (relative vs. absolute, symlinks, short names)
     if exclude is None:
         excluded_files: set[Path] = set()
     else:
-        excluded_files = set(resolve_exclude(exclude))
+        excluded_files = {f.resolve() for f in resolve_exclude(exclude)}
 
+    resolved_archive_dir = archive_dir.resolve() if archive_dir is not None else None
     candidates: list[Path] = []
 
     for item in base_dir.rglob("*"):
@@ -122,13 +124,12 @@ def get_auto_discover_candidates(
             if is_in_hidden_directory(item, base_dir):
                 continue
 
-            try:
-                item.relative_to(archive_dir)
-                continue
-            except ValueError:
-                pass
+            resolved_item = item.resolve()
 
-            if item in excluded_files:
+            if resolved_archive_dir is not None and resolved_item.is_relative_to(resolved_archive_dir):
+                continue
+
+            if resolved_item in excluded_files:
                 continue
 
             candidates.append(item)

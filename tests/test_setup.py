@@ -12,7 +12,7 @@ from rair.setup import (
     read_gitignore,
     add_gitignore_entries,
 )
-from rair.config import RairConfig
+from rair.config import RairConfig, load_config
 
 
 class TestWriteConfigToFile:
@@ -33,10 +33,35 @@ class TestWriteConfigToFile:
             content = config_path.read_text()
             assert "[rair]" in content
             assert 'archive_dir = "my_archive"' in content
-            assert 'input = "data/*.csv"' in content
-            assert 'output = "results/*.json"' in content
-            assert 'exclude = "*.tmp"' in content
+            assert 'input = ["data/*.csv"]' in content
+            assert 'output = ["results/*.json"]' in content
+            assert 'exclude = ["*.tmp"]' in content
             assert "auto_discover = false" in content
+
+    def test_written_config_can_be_loaded_again(self):
+        """Multiple patterns and special characters must result in valid TOML."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / ".rair.toml"
+            config = RairConfig(
+                archive_dir=Path("my archive") / "sub",
+                input_glob=["data/*.csv", "cache/*.pkl"],
+                output_glob=["results/*.json", "logs/*.txt"],
+                exclude_glob=[],
+                auto_discover=False,
+                output_files_in_run=False,
+                default_command='python "my script.py" C:\\data',
+            )
+
+            write_config_to_file(config, config_path)
+            result = load_config(Path(tmpdir))
+
+            assert result.archive_dir == Path("my archive") / "sub"
+            assert result.input_glob == ["data/*.csv", "cache/*.pkl"]
+            assert result.output_glob == ["results/*.json", "logs/*.txt"]
+            assert result.exclude_glob == []
+            assert result.auto_discover is False
+            assert result.output_files_in_run is False
+            assert result.default_command == 'python "my script.py" C:\\data'
 
     def test_write_config_includes_default_command_and_output_files_in_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:

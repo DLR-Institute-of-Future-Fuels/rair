@@ -1,23 +1,8 @@
 """CLI argument parsing utilities for rair."""
 
-from typing import Tuple
+from pathlib import Path
 
-SCRIPT_EXTENSIONS = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe", ".ps1"}
-
-RAIR_OPTIONS = {
-    "--config",
-    "--input",
-    "--output",
-    "--exclude",
-    "--archive-dir",
-}
-
-RAIR_BOOLEAN_OPTIONS = {
-    "--capture-output",
-    "--no-auto-discover",
-}
-
-ALL_RAIR_OPTIONS = RAIR_OPTIONS | RAIR_BOOLEAN_OPTIONS
+from .script_type import SCRIPT_EXTENSIONS, parse_shebang
 
 
 def is_script_extension(value: str) -> bool:
@@ -35,38 +20,16 @@ def is_script_extension(value: str) -> bool:
     return False
 
 
-def separate_args(args: list[str]) -> Tuple[list[str], list[str]]:
-    """Separate rair options from script arguments.
-
-    Uses "--" as a separator - everything after "--" goes to script arguments.
+def is_script(value: str) -> bool:
+    """Check if a value is a script to run instead of a command.
 
     Args:
-        args: List of arguments to separate
+        value: String value to check
 
     Returns:
-        Tuple of (rair_options, script_arguments)
+        True if value has a known script extension or is a file with a shebang line
     """
-    rair_options: list[str] = []
-    script_arguments: list[str] = []
-
-    i = 0
-    while i < len(args):
-        arg = args[i]
-
-        if arg == "--":
-            script_arguments.extend(args[i + 1 :])
-            break
-
-        if arg in RAIR_BOOLEAN_OPTIONS:
-            rair_options.append(arg)
-        elif arg in RAIR_OPTIONS:
-            rair_options.append(arg)
-            if i + 1 < len(args) and not args[i + 1].startswith("-"):
-                rair_options.append(args[i + 1])
-                i += 1
-        else:
-            script_arguments.append(arg)
-
-        i += 1
-
-    return rair_options, script_arguments
+    if is_script_extension(value):
+        return True
+    path = Path(value)
+    return path.is_file() and parse_shebang(path) is not None
