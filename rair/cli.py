@@ -26,8 +26,9 @@ app = typer.Typer(
 )
 
 
-# Unknown options are passed on to the script, so that `rair myscript.py --lr 0.1` works
-@app.command(context_settings={"ignore_unknown_options": True})
+# Option parsing stops at the script/command: everything after it is passed on
+# unchanged, so that `rair myscript.py --input file.txt` works
+@app.command(context_settings={"allow_interspersed_args": False})
 def main(
     script_or_command: Optional[str] = Argument(
         default=None,
@@ -103,8 +104,8 @@ def main(
         rair make --all
         rair --setup
 
-    Options unknown to rair are passed on to the script. Use "--" to pass
-    options that rair knows itself: rair myscript.py -- --input file.txt
+    Options for rair must be given before the script or command. Everything
+    after it is passed on unchanged: rair --comment test myscript.py --input file.txt
     """
 
     execution_dir = Path.cwd()

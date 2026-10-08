@@ -260,8 +260,12 @@ class TestConfigFiles:
         assert [f["path"] for f in run_data["input_files"]] == ["data/input.csv"]
         assert [f["path"] for f in run_data["output_files"]] == ["result.txt"]
 
-    def test_config_in_subdirectory_overrides_project_config(self, project: Path, monkeypatch: pytest.MonkeyPatch):
-        (project / ".rair.toml").write_text('[rair]\narchive_dir = "project_archive"\n')
+    def test_config_in_subdirectory_is_merged_with_project_config(
+        self, project: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        (project / ".rair.toml").write_text(
+            '[rair]\narchive_dir = "project_archive"\ncapture_output = false\n'
+        )
         experiments = project / "experiments"
         experiments.mkdir()
         (experiments / ".rair.toml").write_text('[rair]\narchive_dir = "local_archive"\n')
@@ -270,7 +274,10 @@ class TestConfigFiles:
 
         run_dir = run_rair(project, "train.py", archive="local_archive")
         assert load_run(run_dir)["command"] == ["python", "train.py"]
+        # archive_dir is overridden by the local config
         assert not (project / "project_archive").exists()
+        # capture_output is inherited from the project config
+        assert not (run_dir / "out.txt").exists()
 
     def test_pyproject_without_rair_section_does_not_shadow_project_config(
         self, project: Path, monkeypatch: pytest.MonkeyPatch

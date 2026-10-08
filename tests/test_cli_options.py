@@ -141,11 +141,38 @@ class TestScriptArguments:
         assert call_args[0][2] == []
         assert call_args[0][4] == "make"
 
-    def test_double_dash_passes_rair_options_to_script(self, project_dir: Path):
-        result, call_args = invoke(["script.py", "--", "--input", "file.txt"])
+    def test_rair_options_after_script_are_passed_to_script(self, project_dir: Path):
+        result, call_args = invoke(
+            ["--comment", "c1", "script.py", "--input", "file.txt", "--comment", "c2", "--help"]
+        )
         assert result.exit_code == 0, result.output
-        assert call_args[0][2] == ["--input", "file.txt"]
+        assert call_args[0][2] == ["--input", "file.txt", "--comment", "c2", "--help"]
         assert call_args[0][3].input_glob == []
+        assert call_args[0][3].comment == "c1"
+
+    def test_rair_options_after_command_are_passed_to_command(self, project_dir: Path):
+        result, call_args = invoke(["--input", "a.csv", "python", "script.py", "--input", "b.csv"])
+        assert result.exit_code == 0, result.output
+        assert call_args[0][0] == Path("script.py")
+        assert call_args[0][2] == ["--input", "b.csv"]
+        assert call_args[0][3].input_glob == ["a.csv"]
+        assert call_args[0][4] == "python"
+
+    def test_double_dash_after_script_is_passed_to_script(self, project_dir: Path):
+        result, call_args = invoke(["script.py", "--", "arg"])
+        assert result.exit_code == 0, result.output
+        assert call_args[0][2] == ["--", "arg"]
+
+    def test_double_dash_before_script(self, project_dir: Path):
+        result, call_args = invoke(["--comment", "c1", "--", "script.py", "--input", "file.txt"])
+        assert result.exit_code == 0, result.output
+        assert call_args[0][0] == Path("script.py")
+        assert call_args[0][2] == ["--input", "file.txt"]
+
+    def test_unknown_option_before_script_is_an_error(self, project_dir: Path):
+        result, call_args = invoke(["--unknown", "script.py"])
+        assert result.exit_code == 2
+        assert call_args is None
 
 
 class TestDefaultCommand:

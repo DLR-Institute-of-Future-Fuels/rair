@@ -96,7 +96,7 @@ class TestCLI:
                 config_path.write_text("[rair]\n")
 
                 try:
-                    result = runner.invoke(app, [str(script_path), "--config", str(config_path)])
+                    result = runner.invoke(app, ["--config", str(config_path), str(script_path)])
                     assert result.exit_code == 0
                     assert mock_run.called
                 finally:
@@ -118,14 +118,18 @@ class TestCLI:
                 result = runner.invoke(
                     app,
                     [
-                        str(script_path),
                         "--input", "data/*.csv",
                         "--output", "results/*.txt",
                         "--exclude", "*.tmp",
+                        str(script_path),
                     ],
                 )
                 assert result.exit_code == 0
                 assert mock_run.called
+                config = mock_run.call_args[0][3]
+                assert config.input_glob == ["data/*.csv"]
+                assert config.output_glob == ["results/*.txt"]
+                assert config.exclude_glob == ["*.tmp"]
             finally:
                 script_path.unlink()
 
@@ -209,15 +213,16 @@ class TestCLI:
                 result = runner.invoke(
                     app,
                     [
+                        "--input", "data/*.csv",
                         str(script_path),
                         "arg1",
-                        "--input", "data/*.csv",
                     ],
                 )
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
                 assert call_args[0][2] == ["arg1"]
+                assert call_args[0][3].input_glob == ["data/*.csv"]
             finally:
                 script_path.unlink()
 
@@ -237,16 +242,17 @@ class TestCLI:
                 result = runner.invoke(
                     app,
                     [
+                        "--input", "data/*.csv",
                         "python",
                         str(script_path),
                         "arg1",
-                        "--input", "data/*.csv",
                     ],
                 )
                 assert result.exit_code == 0
                 assert mock_run.called
                 call_args = mock_run.call_args
                 assert call_args[0][2] == ["arg1"]
+                assert call_args[0][3].input_glob == ["data/*.csv"]
                 assert call_args[0][4] == "python"
             finally:
                 script_path.unlink()

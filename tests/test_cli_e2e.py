@@ -103,7 +103,7 @@ class TestCLIE2E:
         original_cwd = os.getcwd()
         os.chdir(temp_project_dir)
         try:
-            result = runner.invoke(app, [str(dest_script), "--", "extra_arg"])
+            result = runner.invoke(app, [str(dest_script), "extra_arg"])
         finally:
             os.chdir(original_cwd)
         assert result.exit_code == 0, f"CLI failed: {result.output}"

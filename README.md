@@ -119,10 +119,10 @@ rair python3 mymodel.py arg1 arg2
 # The first argument can be a Python script or any arbitrary command
 rair make --all
 
-# Options that Rair does not know are passed on to the script.
-# Use "--" to pass an option to the script that Rair knows itself
-rair myscript.py --learning-rate 0.1
-rair myscript.py -- --input file.txt
+# Options for Rair must be given before the script or command.
+# Everything after it is passed on unchanged, here the comment is used
+# by Rair and --input is passed to the script
+rair --comment "experiment 1" myscript.py --input file.txt
 
 # Manually specify which files to track
 rair --input "data/*.csv" --output "results/*.json" myscript.py
@@ -205,7 +205,9 @@ Relative paths and glob patterns are resolved from the project directory.
 ### Hierarchical Configuration
 You can have different configurations for different directories:
 
-- A `.rair.toml` (or a `pyproject.toml` with a `[tool.rair]` section) in the current directory replaces the project-level config completely, the two are not merged
+- The config files (`.rair.toml`, or a `pyproject.toml` with a `[tool.rair]` section) of all directories from the project directory down to the current directory are merged
+- A setting in a subdirectory overrides the same setting of its parent directories, settings that are not given are inherited
+- List values (glob patterns) are replaced, not concatenated
 - Use `rair --setup` in subdirectories to create local configs
 - Run `rair --setup` and choose "(c)urrent directory" or "(p)roject"
 
@@ -214,9 +216,11 @@ Example directory structure:
 project/
 ├── .rair.toml          # Project config
 └── experiments/
-    ├── .rair.toml      # Overrides project config
+    ├── .rair.toml      # Overrides single settings of the project config
     └── train.py
 ```
+
+With `archive_dir = "rairarchive"` and `capture_output = false` in the project config and only `default_command = "python train.py"` in `experiments/.rair.toml`, running `rair` in `experiments/` uses all three settings.
 
 ## Developer Guide
 Feedback and contributions are welcome - please open an issue or submit a pull request on GitHub.

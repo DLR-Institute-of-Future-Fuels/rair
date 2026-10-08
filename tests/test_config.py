@@ -438,7 +438,145 @@ input_glob = ["local_data/*.json"]
 
             assert result.archive_dir == Path("local_archive")
             assert result.input_glob == ["local_data/*.json"]
-            assert result.output_glob == []
+            # Settings missing in the local config are inherited from the project
+            assert result.output_glob == ["project_output/*.txt"]
+
+    def test_local_config_inherits_all_missing_settings(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            (project_dir / ".rair.toml").write_text("""
+[rair]
+archive_dir = "project_archive"
+exclude = ["*.tmp"]
+autodata_dir = "data"
+capture_output = false
+auto_discover = false
+output_files_in_run = false
+default_command = "make"
+""")
+            (execution_dir / ".rair.toml").write_text("""
+[rair]
+capture_output = true
+default_command = "python train.py"
+""")
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+
+            assert result.archive_dir == Path("project_archive")
+            assert result.exclude_glob == ["*.tmp"]
+            assert result.autodata_dir == Path("data")
+            assert result.capture_output is True
+            assert result.auto_discover is False
+            assert result.output_files_in_run is False
+            assert result.default_command == "python train.py"
+
+    def test_local_list_replaces_project_list(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            (project_dir / ".rair.toml").write_text('[rair]\ninput_glob = ["a/*.csv", "b/*.csv"]\n')
+            # The alias "input" overrides "input_glob" of the project config
+            (execution_dir / ".rair.toml").write_text('[rair]\ninput = ["c/*.csv"]\n')
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.input_glob == ["c/*.csv"]
+
+            (execution_dir / ".rair.toml").write_text('[rair]\ninput = []\n')
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.input_glob == []
+
+    def test_configs_of_intermediate_directories_are_merged(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            middle_dir = project_dir / "experiments"
+            execution_dir = middle_dir / "run1"
+            execution_dir.mkdir(parents=True)
+
+            (project_dir / ".rair.toml").write_text(
+                '[rair]\narchive_dir = "project_archive"\ndefault_command = "make"\ncapture_output = false\n'
+            )
+            (middle_dir / ".rair.toml").write_text(
+                '[rair]\narchive_dir = "experiments_archive"\ninput = ["data/*.csv"]\n'
+            )
+            (execution_dir / ".rair.toml").write_text('[rair]\ndefault_command = "python run.py"\n')
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.archive_dir == Path("experiments_archive")
+            assert result.input_glob == ["data/*.csv"]
+            assert result.default_command == "python run.py"
+            assert result.capture_output is False
+
+            # A sibling directory is not affected by the config of run1
+            sibling_dir = middle_dir / "run2"
+            sibling_dir.mkdir()
+            result = load_hierarchical_config(sibling_dir, project_dir)
+            assert result.default_command == "make"
+            assert result.archive_dir == Path("experiments_archive")
+
+    def test_rair_toml_and_pyproject_toml_are_merged_across_directories(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "subdir"
+            execution_dir.mkdir(parents=True)
+
+            (project_dir / "pyproject.toml").write_text(
+                '[tool.rair]\narchive_dir = "project_archive"\noutput = ["results/*.json"]\n'
+            )
+            (execution_dir / ".rair.toml").write_text('[rair]\narchive_dir = "local_archive"\n')
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.archive_dir == Path("local_archive")
+            assert result.output_glob == ["results/*.json"]
+
+    def test_local_pyproject_without_rair_section_changes_nothing(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = project_dir / "package"
+            execution_dir.mkdir(parents=True)
+
+            (project_dir / ".rair.toml").write_text('[rair]\narchive_dir = "project_archive"\n')
+            (execution_dir / "pyproject.toml").write_text('[project]\nname = "package"\n')
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.archive_dir == Path("project_archive")
+
+    def test_execution_dir_outside_of_project(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "project"
+            execution_dir = Path(tmpdir) / "elsewhere"
+            project_dir.mkdir()
+            execution_dir.mkdir()
+
+            (project_dir / ".rair.toml").write_text(
+                '[rair]\narchive_dir = "project_archive"\ndefault_command = "make"\n'
+            )
+            (execution_dir / ".rair.toml").write_text('[rair]\narchive_dir = "local_archive"\n')
+
+            result = load_hierarchical_config(execution_dir, project_dir)
+            assert result.archive_dir == Path("local_archive")
+            assert result.default_command == "make"
+
+    def test_merged_configs_do_not_share_state(self):
+        from rair.config import load_hierarchical_config
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            (project_dir / ".rair.toml").write_text('[rair]\ninput = ["data/*.csv"]\n')
+
+            first = load_hierarchical_config(project_dir, project_dir)
+            first.input_glob.append("other/*.csv")
+            second = load_hierarchical_config(project_dir, project_dir)
+            assert second.input_glob == ["data/*.csv"]
 
     def test_local_config_not_found_falls_back_to_project(self):
         from rair.config import load_hierarchical_config
