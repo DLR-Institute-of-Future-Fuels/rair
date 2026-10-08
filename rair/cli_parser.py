@@ -1,6 +1,8 @@
 """CLI argument parsing utilities for rair."""
 
-SCRIPT_EXTENSIONS = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe", ".ps1"}
+from pathlib import Path
+
+from .script_type import SCRIPT_EXTENSIONS, parse_shebang
 
 
 def is_script_extension(value: str) -> bool:
@@ -16,3 +18,18 @@ def is_script_extension(value: str) -> bool:
         if value.lower().endswith(ext):
             return True
     return False
+
+
+def is_script(value: str) -> bool:
+    """Check if a value is a script to run instead of a command.
+
+    Args:
+        value: String value to check
+
+    Returns:
+        True if value has a known script extension or is a file with a shebang line
+    """
+    if is_script_extension(value):
+        return True
+    path = Path(value)
+    return path.is_file() and parse_shebang(path) is not None

@@ -16,7 +16,7 @@ from .config import (
     RairConfig,
 )
 from .core import run
-from .cli_parser import is_script_extension
+from .cli_parser import is_script
 from .git import get_toplevel
 from .setup import setup_interactive
 
@@ -32,7 +32,7 @@ app = typer.Typer(
 def main(
     script_or_command: Optional[str] = Argument(
         default=None,
-        help="Script path (with extension) or command (python, bash, make, etc.)",
+        help="Script path (with known extension or shebang line) or command (python, bash, make, etc.)",
     ),
     args: list[str] = Argument(
         default=[],
@@ -132,7 +132,7 @@ def main(
             typer.echo("Error: No script or command specified. Use --help for usage information.")
             raise typer.Exit(1)
 
-    if is_script_extension(script_or_command):
+    if is_script(script_or_command):
         command = None
         script = Path(script_or_command)
         script_args = args

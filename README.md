@@ -113,10 +113,15 @@ rair myscript.py
 # Run a Python script with script arguments
 rair myscript.py arg1 arg2
 
+# Run other scripts, the interpreter is chosen by the shebang line
+# or the file extension
+rair analysis.R
+rair ./run_model
+
 # Run with explicit command
 rair python3 mymodel.py arg1 arg2
 
-# The first argument can be a Python script or any arbitrary command
+# The first argument can be a script or any arbitrary command
 rair make --all
 
 # Options for Rair must be given before the script or command.

@@ -11,7 +11,7 @@ from .archive import create_run_info, generate_run_id, compute_combined_hash
 from .git import get_status, get_tracked_files
 from .models import GitInfo
 from .config import RairConfig
-from .script_type import get_command_args, detect_script_type
+from .script_type import get_script_command
 from .tracking import (
     create_snapshot,
     discover_files,
@@ -160,8 +160,7 @@ def run(
                 command_args = [command_override]
         else:
             assert script, 'A script or executable needs to be specified'
-            detected_type = detect_script_type(script)
-            command_args = get_command_args(script, detected_type)
+            command_args = get_script_command(script)
         full_command = command_args + args
 
         input_file_hashes = [file.hash for file in before_snapshot.files.values()]

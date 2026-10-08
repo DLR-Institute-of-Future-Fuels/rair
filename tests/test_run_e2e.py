@@ -331,3 +331,32 @@ class TestRestoreCode:
         assert not (run_dir / "git_diff.patch").exists()
         assert load_run(run_dir)["git"]["has_diff"] is False
         assert "Uncommitted Changes" not in (run_dir / "info.md").read_text(encoding="utf-8")
+
+
+class TestScriptWithoutInterpreter:
+    def test_script_with_shebang_and_without_extension(self, project: Path):
+        (project / "run_model").write_bytes(b"#!/usr/bin/env python3\n" + SCRIPT.encode())
+
+        run_dir = run_rair(project, "--comment", "shebang", "run_model", "arg1", "--lr", "0.1")
+
+        run_data = load_run(run_dir)
+        assert run_data["command"] == ["python", "run_model", "arg1", "--lr", "0.1"]
+        assert run_data["comment"] == "shebang"
+        assert "output of model" in (run_dir / "out.txt").read_text(encoding="utf-8")
+        assert (project / "result.txt").read_text() == "result = 5.9 ['arg1', '--lr', '0.1']\n"
+
+    def test_script_with_shebang_in_subdirectory(self, project: Path):
+        (project / "tools").mkdir()
+        (project / "tools" / "run_model").write_bytes(b"#!/usr/bin/python\n" + SCRIPT.encode())
+
+        run_dir = run_rair(project, "tools/run_model")
+
+        assert load_run(run_dir)["command"] == ["python", str(Path("tools/run_model"))]
+        assert (project / "result.txt").exists()
+
+    def test_shebang_of_python_file_is_used(self, project: Path):
+        (project / "model.py").write_bytes(b"#!/usr/bin/env -S python -u\n" + SCRIPT.encode())
+
+        run_dir = run_rair(project, "model.py")
+
+        assert load_run(run_dir)["command"] == ["python", "-u", "model.py"]

@@ -39,7 +39,7 @@ class TestIsScriptExtension:
     def test_unknown_extension(self):
         assert is_script_extension("script.txt") is False
         assert is_script_extension("script.log") is False
-        assert is_script_extension("script.js") is False
+        assert is_script_extension("script.xyz") is False
 
     def test_with_path(self):
         assert is_script_extension("path/to/script.py") is True
@@ -50,4 +50,4 @@ class TestIsScriptExtension:
 class TestScriptExtensions:
     def test_script_extensions_set(self):
         expected = {".py", ".sh", ".bash", ".bat", ".cmd", ".exe", ".ps1"}
-        assert SCRIPT_EXTENSIONS == expected
+        assert expected <= SCRIPT_EXTENSIONS
